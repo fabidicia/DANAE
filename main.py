@@ -16,12 +16,12 @@ import torch.optim as optim
 from itertools import chain
 from datasets import IMUdata
 from networks import MyLSTM, MyLSTM2
-from vio_master.LKF import LKF
+import LKF
 import random
 
 # eccomi ero a far pipi'.ti chiamo su skype
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
-parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep learning/Oxford Inertial Odometry Dataset/handheld/data2/syn/")
+parser.add_argument('--folder', type=str, default="/home/paolo/datasets/Oxford_Inertial_Odometry_Dataset/handheld/data2/syn/")
 parser.add_argument('--arch', type=str, default="MyLSTM")
 parser.add_argument('--epochs', type=int, default=200)
 parser.add_argument('--update_step', type=int, default=200)
@@ -29,6 +29,7 @@ parser.add_argument('--optim', type=str,default="Adam")
 # parser.add_argument ('--n', type=int, required=True) # i_th value to display
 args = parser.parse_args()
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 imudata = IMUdata(args.folder)  # istanza della classe
 seed = random.randint(0,1000)
 print("SEED EXPERIMENT: "+str(seed))
@@ -46,9 +47,10 @@ past_gt = past_gt.view(1, 30)
 
 # creating my LSTM deep model
 if args.arch == "MyLSTM":
-    model = MyLSTM()
+    model = MyLSTM(device=device)
 elif args.arch == "MyLSTM2":
     model = MyLSTM2()
+model = model.to(device) #casting the model to the correct device, cpu or gpu
 
 # creating my linear kalman filter:
 # lkf = LKF()
@@ -72,6 +74,7 @@ counter = 0
 
 for epoch in range(args.epochs):
     counter = 0
+    model.ResetHiddenState()
     for i in range(0, imudata.len, 1):
         # hidden = (torch.rand(1, 1, 3), torch.rand(1, 1, 3))
         _, acc, gyr, mag, gt_rot, gt_tran = imudata.__getitem__(i) #l'_ all'inizio dice che ci andrebbe una variabile ma non mi serve e non la metto. questo perchè bisogna che tutte le chiamate corrispondano a quelle della function __getitem__
@@ -82,20 +85,20 @@ for epoch in range(args.epochs):
         input_tensor = torch.Tensor(input_list)
         input_tensor = input_tensor.view(1, 9)
         newinput_tensor = torch.cat([input_tensor, past_gt], -1)     # tensore 1*19
-        grt_transltensor = torch.Tensor(grt_transl) #tensore 1x3
+        grt_transltensor = torch.Tensor(grt_transl).to(device) #tensore 1x3
+        newinput_tensor = newinput_tensor.to(device) #casting input data to device
         out = model(newinput_tensor)
         total_rel_error += ((out.view(1, 1, 3) - grt_transltensor.view(1, 1, 3)).abs() / grt_transltensor.view(1, 1, 3).abs())[0,0]
 
         if i % args.update_step == 0:
             loss = loss_function(out.view(1, 1, 3), grt_transltensor.view(1, 1, 3))
-            loss.backward()  # calcola i gradienti
+            loss.backward(retain_graph=True)  # calcola i gradienti
             optimizer.step()    # aggiorna i pesi della rete a partire dai gradienti calcolati
             # hidden = (torch.rand(1,1,3), torch.rand(1,1,3)) #we reset hidden state every 30 iters
             total_loss += loss.item()
 
             counter = counter + 1
             optimizer.zero_grad()
-            # model.ResetHiddenState()
             writer.add_scalar('training loss (point by point)', loss.item(), epoch * imudata.len + i)
             writer.add_scalar('training loss (mean over 100)', total_loss/100, epoch * imudata.len + i)
         past_gt = torch.roll(past_gt, shifts=3)

@@ -14,15 +14,16 @@ from itertools import chain
 
 
 class MyLSTM(nn.Module):
-    def __init__(self):
+    def __init__(self,device = torch.device("cpu")):
         super(MyLSTM, self).__init__()
         self.ninput = 39
-        self.lstm = nn.LSTM(self.ninput, 3)   # lstm = nn.LSTM(9, 3)
-        self.fc1 = torch.nn.Linear(self.ninput, 256)    # fc1 = torch.nn.Linear(9,9) #fully connected layer
-        self.fcm = torch.nn.Linear(256, self.ninput)
-        self.fc2 = torch.nn.Linear(3, 3)    # fc2 = torch.nn.Linear(3,3) #fully connected layer
+        self.device = device
+        self.lstm = nn.LSTM(self.ninput, 3).to(device)   # lstm = nn.LSTM(9, 3)
+        self.fc1 = torch.nn.Linear(self.ninput, 256).to(device)    # fc1 = torch.nn.Linear(9,9) #fully connected layer
+        self.fcm = torch.nn.Linear(256, self.ninput).to(device)
+        self.fc2 = torch.nn.Linear(3, 3).to(device)    # fc2 = torch.nn.Linear(3,3) #fully connected layer
         self.ReLU = torch.nn.ReLU()     # o ci va F.relu(output)??
-        self.hidden = (torch.rand(1, 1, 3), torch.rand(1, 1, 3))
+        self.hidden = (torch.rand(1, 1, 3).to(device), torch.rand(1, 1, 3).to(device))
         self.hidden[0].requires_grad = False
         self.hidden[1].requires_grad = False
         # hidden = (torch.rand(1, 1, 3), torch.rand(1, 1, 3))
@@ -30,7 +31,7 @@ class MyLSTM(nn.Module):
         #optimizer = optim.SGD(lstm.parameters(), lr=0.001,momentum=True)
        
     def ResetHiddenState(self):   #metodo che resetta l'hidden ???
-        self.hidden = (torch.rand(1,1,3),torch.rand(1,1,3))
+        self.hidden = (torch.rand(1,1,3).to(self.device),torch.rand(1,1,3).to(self.device))
       
 
     def forward(self, input):  #dato l'input fornisce l'output
