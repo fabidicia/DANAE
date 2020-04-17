@@ -131,3 +131,4 @@ plt.show()
 #    del loss,input_list,grt_transl,input_tensor
 # torch.manual_seed(1)    # seed è un numero che si da in input ad una funzione o libreria in modo che sia riproducibile
 
+#comment added to try the commit change 
