@@ -54,6 +54,17 @@ class MyLSTM2(nn.Module):
         self.hidden = (torch.rand(self.nlayers, 1, 3), torch.rand(self.nlayers, 1, 3))
         self.hidden[0].requires_grad = False
         self.hidden[1].requires_grad = False
+
+class MyLSTMCell(nn.Module):
+    def __init__(self):
+        super(MyLSTMCell, self).__init__()
+        self.ninput = 39
+        self.nlayers = 4
+        self.lstm = nn.LSTMCell(self.ninput, 3,num_layers=self.nlayers)   # lstm = nn.LSTM(9, 3)
+ 
+        self.hidden = (torch.rand(self.nlayers, 1, 3), torch.rand(self.nlayers, 1, 3))
+        self.hidden[0].requires_grad = False
+        self.hidden[1].requires_grad = False
        
     def ResetHiddenState(self):   #metodo che resetta l'hidden ???
         self.hidden = (torch.rand(self.nlayers,1,3),torch.rand(self.nlayers,1,3))
