@@ -1,4 +1,5 @@
 ##COMMENTO A CASO
+#sei uno gnappo
 import warnings
 warnings.filterwarnings('ignore',category=FutureWarning)
 import os
