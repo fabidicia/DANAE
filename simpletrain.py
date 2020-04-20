@@ -56,6 +56,8 @@ if args.arch == "MyLSTM":
     model = MyLSTM(device=device,n_inputs=33)
 elif args.arch == "MyLSTM2":
     model = MyLSTM2()
+elif args.arch == "MyLSTMCell":
+    model = MyLSTMCell()
 model = model.to(device)    # casting the model to the correct device, cpu or gpu
 
 
