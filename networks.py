@@ -14,9 +14,9 @@ from itertools import chain
 
 
 class MyLSTM(nn.Module):
-    def __init__(self,device = torch.device("cpu")):
+    def __init__(self,device = torch.device("cpu"),n_inputs=39):
         super(MyLSTM, self).__init__()
-        self.ninput = 39
+        self.ninput = n_inputs
         self.device = device
         self.lstm = nn.LSTM(self.ninput, 3).to(device)   # lstm = nn.LSTM(9, 3)
         self.fc1 = torch.nn.Linear(self.ninput, 256).to(device)    # fc1 = torch.nn.Linear(9,9) #fully connected layer
