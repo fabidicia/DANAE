@@ -27,12 +27,11 @@ class MyLSTM(nn.Module):
         self.hidden[0].requires_grad = False
         self.hidden[1].requires_grad = False
         # hidden = (torch.rand(1, 1, 3), torch.rand(1, 1, 3))
-        #optimizer = optim.Adam(chain(*[lstm.parameters(),fc1.parameters(),fc2.parameters()]), lr=0.0001)
-        #optimizer = optim.SGD(lstm.parameters(), lr=0.001,momentum=True)
-       
+        # optimizer = optim.Adam(chain(*[lstm.parameters(),fc1.parameters(),fc2.parameters()]), lr=0.0001)
+        # optimizer = optim.SGD(lstm.parameters(), lr=0.001,momentum=True)
+
     def ResetHiddenState(self):   #metodo che resetta l'hidden ???
         self.hidden = (torch.rand(1,1,3).to(self.device),torch.rand(1,1,3).to(self.device))
-      
 
     def forward(self, input):  #dato l'input fornisce l'output
         input = self.fc1(input)
@@ -44,16 +43,25 @@ class MyLSTM(nn.Module):
         out = self.fc2(out)
         return out
 
+
 class MyLSTM2(nn.Module):
     def __init__(self):
         super(MyLSTM2, self).__init__()
         self.ninput = 39
         self.nlayers = 4
         self.lstm = nn.LSTM(self.ninput, 3,num_layers=self.nlayers)   # lstm = nn.LSTM(9, 3)
- 
         self.hidden = (torch.rand(self.nlayers, 1, 3), torch.rand(self.nlayers, 1, 3))
         self.hidden[0].requires_grad = False
         self.hidden[1].requires_grad = False
+
+    def ResetHiddenState(self):   #metodo che resetta l'hidden ???
+        self.hidden = (torch.rand(self.nlayers, 1, 3), torch.rand(self.nlayers, 1, 3))
+
+    def forward(self, input):  #dato l'input fornisce l'output
+
+        out, self.hidden = self.lstm(input.view(1, 1, self.ninput), self.hidden)   # ci va il self?
+        return out
+
 
 class MyLSTMCell(nn.Module):
     def __init__(self):
@@ -61,14 +69,12 @@ class MyLSTMCell(nn.Module):
         self.ninput = 39
         self.nlayers = 4
         self.lstm = nn.LSTMCell(self.ninput, 3,num_layers=self.nlayers)   # lstm = nn.LSTM(9, 3)
- 
         self.hidden = (torch.rand(self.nlayers, 1, 3), torch.rand(self.nlayers, 1, 3))
         self.hidden[0].requires_grad = False
         self.hidden[1].requires_grad = False
-       
-    def ResetHiddenState(self):   #metodo che resetta l'hidden ???
-        self.hidden = (torch.rand(self.nlayers,1,3),torch.rand(self.nlayers,1,3))
-      
+
+    def ResetHiddenState(self):   # metodo che resetta l'hidden ???
+        self.hidden = (torch.rand(self.nlayers, 1, 3), torch.rand(self.nlayers, 1, 3))
 
     def forward(self, input):  #dato l'input fornisce l'output
 
