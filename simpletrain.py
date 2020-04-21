@@ -15,9 +15,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from itertools import chain
 from datasets import IMUdata
-from networks import MyLSTM, MyLSTM2
+from networks import *
 import LKF
 import random
+from datasets import SimpleDataset
+
 # import pdb; pdb.set_trace() # mette i breakpoints
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
@@ -45,8 +47,8 @@ print("SEED EXPERIMENT: "+str(seed))
 exper_path = 'runs/'+args.arch+'_experiment_'+str(seed)
 
 writer = SummaryWriter(exper_path)
-train_list = []   # la lista si definisce con le quadre
-gt_list = []
+MyDataset = SimpleDataset(seq_len=10)
+MyDataLoader = DataLoader(MyDataset, batch_size=32,shuffle=True, num_workers=1)
 past_gt = torch.zeros([10, 1, 3])   # 10 è dim0, 1 è dim1, 3 è dim2
 past_gt = past_gt.view(1, 30)
 # past_gt = torch.zeros([10])
@@ -58,6 +60,8 @@ elif args.arch == "MyLSTM2":
     model = MyLSTM2()
 elif args.arch == "MyLSTMCell":
     model = MyLSTMCell()
+elif args.arch == "YOLO_LSTM":
+    model = YOLO_LSTM(input_dim=3, output_size=3, hidden_dim=128, n_layers=2, drop_prob=0.0)
 model = model.to(device)    # casting the model to the correct device, cpu or gpu
 
 
@@ -66,76 +70,48 @@ loss_function = nn.MSELoss()
 if args.optim == "Adam":
     optimizer = optim.Adam(chain(*[model.parameters()]), lr=0.0001)
 elif args.optim == "SGD":
-    optimizer = optim.SGD(chain(*[model.parameters()]), lr=0.00001, momentum=0.9)
+    optimizer = optim.SGD(chain(*[model.parameters()]), lr=0.01, momentum=0.9)
 else:
     raise Exception("Invalid value for args.optim! Chooose between Adam and SGD :-p ")
 
 loss_vector = []
 total_loss = 0.0
 total_rel_error = 0.0
-counter = 0
 
 # fai X_gt.append(value.item().numpy())
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
-# # Train and GT Data cretor
-for i in range(0, imudata.len, 1):
-    inputs = [i, i + 1, i - 2]
-    train_list.append(inputs)
-    summ = sum(inputs)
-    tmp = [float(j)*float(j) for j in inputs]
-    quad = sum(tmp)
-    tmp2 = [float(j)*float(j)*float(j) for j in inputs]  
-    cube = sum(tmp2)
-    gt = [summ,quad,cube]
-    gt_list.append(gt)
-
 for epoch in range(args.epochs):
-     #counter = 0
-    model.ResetHiddenState()
-    for i in range(0, imudata.len, 1):
-        # hidden = (torch.rand(1, 1, 3), torch.rand(1, 1, 3))
-        # _, acc, gyr, mag, gt_rot, gt_tran = imudata.__getitem__(i)  # l'_ all'inizio dice che ci andrebbe una variabile ma non mi serve e non la metto. questo perchè bisogna che tutte le chiamate corrispondano a quelle della function __getitem__
-        input_list = train_list[i]
-        # input_list = [float(i) for i in input_list]     # quando leggo valori in una lista servono sempre le quadre
-        input_tensor = torch.Tensor(input_list)
-        input_tensor = input_tensor.view(1, -1)
-        newinput_tensor = torch.cat([input_tensor, past_gt], -1)     # tensore 1*19
-        gt = gt_list[i]
-        # grt_transl = [float(i) for i in grt_transl]
-        gt_tensor = torch.Tensor(gt).to(device) #tensore 1x3
-        newinput_tensor = newinput_tensor.to(device) #casting input data to device
-        out = model(newinput_tensor)
-        total_rel_error += ((out.view(1, 1, 3) - gt_tensor.view(1, 1, 3)).abs() / gt_tensor.view(1, 1, 3).abs())[0, 0]
+    for i,(input_tensor, gt_tensor) in enumerate(MyDataLoader):
+        input_tensor = input_tensor.to(device)
+        gt_tensor = gt_tensor.to(device)
+    
+        out = model(input_tensor)
+        total_rel_error += ((out.view(-1, 10, 3) - gt_tensor.view(-1, 10, 3)).abs() / gt_tensor.view(-1, 10, 3).abs())[0, 0]
 
-        if i % args.update_step == 0:
-            loss = loss_function(out.view(1, 1, 3), gt_tensor.view(1, 1, 3))
-            loss.backward(retain_graph=True)  # calcola i gradienti
-            optimizer.step()    # aggiorna i pesi della rete a partire dai gradienti calcolati
-            # hidden = (torch.rand(1,1,3), torch.rand(1,1,3)) #we reset hidden state every 30 iters
-            total_loss += loss.item()
-
-            counter = counter + 1
-            optimizer.zero_grad()
-            writer.add_scalar('training loss (point by point)', loss.item(), epoch * imudata.len + i)
-            writer.add_scalar('training loss (mean over 100)', total_loss/100, epoch * imudata.len + i)
-        past_gt = torch.roll(past_gt, shifts=3)
-        past_gt[0, 0:3] = gt_tensor[0:3]     # fino al 2ndo
+        loss = loss_function(out.view(-1, 10, 3), gt_tensor.view(-1, 10, 3))
+        loss.backward()  # calcola i gradienti
+        optimizer.step()    # aggiorna i pesi della rete a partire dai gradienti calcolati
+        # hidden = (torch.rand(1,1,3), torch.rand(1,1,3)) #we reset hidden state every 30 iters
+        total_loss += loss.item()
+        optimizer.zero_grad()
+        writer.add_scalar('training loss (point by point)', loss.item(), epoch * imudata.len + i)
         loss_vector.append(loss.item())
 
-        if i % 3000 == 2999:
-            print("epoch: " + str(epoch) + ", loss: " + str(total_loss/100))
+        if i % 9000 == 0:
+            print("epoch: " + str(epoch) + ", loss: " + str(total_loss/100) )
             # print("epoch: " + str(epoch) + ", REL_ERROR X,Y,Z: %.2f, %.2f, %.2f" % 
+            writer.add_scalar('training loss (mean over 100)', total_loss/100, epoch * imudata.len + i)
             #      total_rel_error[0].item()/2999, total_rel_error[1].item()/2999, total_rel_error[2].item()/2999)
-            rel_error_X = total_rel_error[0].item()/2999.0
-            rel_error_Y = total_rel_error[1].item()/2999.0
-            rel_error_Z = total_rel_error[2].item()/2999.0
+            rel_error_X = total_rel_error[0].item() / 9000
+            rel_error_Y = total_rel_error[1].item() / 9000
+            rel_error_Z = total_rel_error[2].item() / 9000
 
             print("REL_ERROR: %.2f, %.2f, %.2f" % (rel_error_X, rel_error_Y, rel_error_Z) )
             total_loss = 0.0
             total_rel_error = 0.0
-            torch.save(model.state_dict(), exper_path+'/model.pth')
-            # DA AGGIUNGERE IL CODICE PER SALVARE I PESI DEL MODELLO: torch.save(model,path_to_the_file)
+    torch.save(model.state_dict(), exper_path+'/model.pth')
+        # DA AGGIUNGERE IL CODICE PER SALVARE I PESI DEL MODELLO: torch.save(model,path_to_the_file)
 print("SEED EXPERIMENT: "+str(seed))
 
 #X_gt = [float(X_gt) for X_gt in X_gt]
@@ -144,7 +120,7 @@ print("SEED EXPERIMENT: "+str(seed))
 #Y_pred = [float(Y_pred) for Y_pred in Y_pred]
 
 
-fig1 = plt.figure()
+fig = plt.figure()
 ax1 = fig.add_subplot(2, 1, 1)
 plt.plot(np.array(loss_vector), 'r')
 plt.show()
