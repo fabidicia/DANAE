@@ -26,6 +26,8 @@ parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep learning/Oxford Inertial Odometry Dataset/handheld/data2/syn/")
 parser.add_argument('--arch', type=str, default="MyLSTM")
 parser.add_argument('--epochs', type=int, default=300)
+parser.add_argument('--hidden_dim', type=int, default=128)
+parser.add_argument('--seq_len', type=int, default=10)
 parser.add_argument('--optim', type=str, default="SGD")
 # parser.add_argument ('--n', type=int, required=True) # i_th value to display
 args = parser.parse_args()
@@ -46,7 +48,7 @@ exper_path = 'runs/'+args.arch+'_experiment_'+str(seed)
 
 INPUT_DIM = 9
 OUT_DIM = 7
-SEQ_LEN = 10
+SEQ_LEN = args.seq_len
 
 writer = SummaryWriter(exper_path)
 MyDataset = MotherOfIMUdata(args.folder,SEQ_LEN)
@@ -60,7 +62,7 @@ elif args.arch == "MyLSTM2":
 elif args.arch == "MyLSTMCell":
     model = MyLSTMCell()
 elif args.arch == "YOLO_LSTM":
-    model = YOLO_LSTM(input_dim=INPUT_DIM, output_size=OUT_DIM, hidden_dim=128, n_layers=2, drop_prob=0.0)
+    model = YOLO_LSTM(input_dim=INPUT_DIM, output_size=OUT_DIM, hidden_dim=args.hidden_dim, n_layers=2, drop_prob=0.0)
 model = model.to(device)    # casting the model to the correct device, cpu or gpu
 
 
