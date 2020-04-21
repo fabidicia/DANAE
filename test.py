@@ -104,10 +104,10 @@ for i in tqdm(range(0, imudata.len, 1)):
 #plt.plot(loss_vector)
 #plt.plot(rel_error_v)
 import pdb; pdb.set_trace()
-X_gt = [float(X_gt) for X_gt in X_gt]
-Y_gt = [float(Y_gt) for Y_gt in Y_gt]
-X_pred = [float(X_pred) for X_pred in X_pred]
-Y_pred = [float(Y_pred) for Y_pred in Y_pred]
+X_gt = [float(elem) for elem in X_gt]
+Y_gt = [float(elem) for elem in Y_gt]
+X_pred = [float(elem) for elem in X_pred]
+Y_pred = [float(elem) for elem in Y_pred]
 
 
 # fig1 = plt.figure()
