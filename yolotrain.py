@@ -27,6 +27,7 @@ parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/D
 parser.add_argument('--arch', type=str, default="MyLSTM")
 parser.add_argument('--epochs', type=int, default=300)
 parser.add_argument('--hidden_dim', type=int, default=128)
+parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--seq_len', type=int, default=10)
 parser.add_argument('--optim', type=str, default="SGD")
 # parser.add_argument ('--n', type=int, required=True) # i_th value to display
@@ -52,7 +53,7 @@ SEQ_LEN = args.seq_len
 
 writer = SummaryWriter(exper_path)
 MyDataset = MotherOfIMUdata(args.folder,SEQ_LEN)
-MyDataLoader = DataLoader(MyDataset, batch_size=32,shuffle=True, num_workers=1)
+MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size,shuffle=True, num_workers=1)
 
 # creating my LSTM deep model
 if args.arch == "MyLSTM":
@@ -79,7 +80,7 @@ scheduler = MultiStepLR(optimizer, milestones=[100,200], gamma=0.1)
 loss_vector = []
 total_loss = 0.0
 total_rel_error = 0.0
-
+print_freq = 9000
 # fai X_gt.append(value.item().numpy())
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
@@ -89,8 +90,8 @@ for epoch in range(args.epochs):
         gt_tensor = gt_tensor.to(device)
     
         out = model(input_tensor)
-        total_rel_error += ((out.view(-1, SEQ_LEN, OUT_DIM) - gt_tensor.view(-1, SEQ_LEN, OUT_DIM)).abs() / gt_tensor.view(-1, SEQ_LEN, OUT_DIM).abs())[0, 0]
-
+        rel_error = ((out.view(-1, SEQ_LEN, OUT_DIM) - gt_tensor.view(-1, SEQ_LEN, OUT_DIM)).abs() / gt_tensor.view(-1, SEQ_LEN, OUT_DIM).abs()) #now it has BATCH_SIZE x SEQ_LEN x OUT_DIM shape
+        total_rel_error += torch.mean(rel_error,dim=[0,1]) # now it has OUT_DIM shape
         loss = loss_function(out.view(-1, SEQ_LEN, OUT_DIM), gt_tensor.view(-1, SEQ_LEN, OUT_DIM))
         loss.backward()  # calcola i gradienti
         optimizer.step()    # aggiorna i pesi della rete a partire dai gradienti calcolati
@@ -100,14 +101,14 @@ for epoch in range(args.epochs):
         writer.add_scalar('training loss (point by point)', loss.item(), epoch * len(MyDataLoader.dataset) + i)
         loss_vector.append(loss.item())
 
-        if i % 9000 == 0:
-            print("epoch: " + str(epoch) + ", loss: " + str(total_loss/100) )
+        if i % print_freq == 0:
+            print("epoch: " + str(epoch) + ", loss: " + str(total_loss/print_freq) )
             # print("epoch: " + str(epoch) + ", REL_ERROR X,Y,Z: %.2f, %.2f, %.2f" % 
-            writer.add_scalar('training loss (mean over 100)', total_loss/100, epoch * len(MyDataLoader.dataset) + i)
+            writer.add_scalar('training loss, mean over ' + str(print_freq), total_loss/print_freq, epoch * len(MyDataLoader.dataset) + i)
             #      total_rel_error[0].item()/2999, total_rel_error[1].item()/2999, total_rel_error[2].item()/2999)
-            rel_error_X = total_rel_error[0].item() / 9000
-            rel_error_Y = total_rel_error[1].item() / 9000
-            rel_error_Z = total_rel_error[2].item() / 9000
+            rel_error_X = total_rel_error[0].item() / print_freq
+            rel_error_Y = total_rel_error[1].item() / print_freq
+            rel_error_Z = total_rel_error[2].item() / print_freq
 
             print("REL_ERROR: %.3f, %.3f, %.3f" % (rel_error_X, rel_error_Y, rel_error_Z) )
             total_loss = 0.0
