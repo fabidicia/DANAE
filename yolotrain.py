@@ -38,7 +38,7 @@ if args.folder == "fabiana":
 elif args.folder == "paolo":
     args.folder = "/home/paolo/datasets/Oxford_Inertial_Odometry_Dataset/handheld/data2/syn/"
 else:
-   raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
+    raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -52,12 +52,12 @@ OUT_DIM = 7
 SEQ_LEN = args.seq_len
 
 writer = SummaryWriter(exper_path)
-MyDataset = MotherOfIMUdata(args.folder,SEQ_LEN)
-MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size,shuffle=True, num_workers=1)
+MyDataset = MotherOfIMUdata(args.folder, SEQ_LEN)
+MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size, shuffle=True, num_workers=1)
 
 # creating my LSTM deep model
 if args.arch == "MyLSTM":
-    model = MyLSTM(device=device,n_inputs=33)
+    model = MyLSTM(device=device, n_inputs=33)
 elif args.arch == "MyLSTM2":
     model = MyLSTM2()
 elif args.arch == "MyLSTMCell":
@@ -85,10 +85,10 @@ print_freq = 900
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
 for epoch in tqdm(range(args.epochs)):
-    for i,(input_tensor, gt_tensor) in enumerate(MyDataLoader):
+    for i, (input_tensor, gt_tensor) in enumerate(MyDataLoader):
         input_tensor = input_tensor.to(device)
         gt_tensor = gt_tensor.to(device)
-    
+
         out = model(input_tensor)
         rel_error = ((out.view(-1, SEQ_LEN, OUT_DIM) - gt_tensor.view(-1, SEQ_LEN, OUT_DIM)).abs() / gt_tensor.view(-1, SEQ_LEN, OUT_DIM).abs()) #now it has BATCH_SIZE x SEQ_LEN x OUT_DIM shape
         total_rel_error += torch.mean(rel_error,dim=[0,1]) # now it has OUT_DIM shape
@@ -109,7 +109,7 @@ for epoch in tqdm(range(args.epochs)):
             total_rel_error = (total_rel_error / print_freq)
 
             print("REL_ERROR: %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f" % tuple([elem.item() for elem in total_rel_error]) )
-            print("MEAN_REL_ERROR: %.1f" %(torch.mean(total_rel_error).item() * 100.0))
+            print("MEAN_REL_ERROR: %.1f" % (torch.mean(total_rel_error).item() * 100.0))
             total_loss = 0.0
             total_rel_error = 0.0
     scheduler.step()
