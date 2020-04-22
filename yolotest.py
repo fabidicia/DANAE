@@ -16,7 +16,6 @@ import torch.optim as optim
 from itertools import chain
 from datasets import IMUdata
 from networks import *
-from vio_master.LKF import LKF
 from datasets import MotherOfIMUdata
 from tqdm import tqdm
 
