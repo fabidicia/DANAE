@@ -67,7 +67,7 @@ X_gt = []
 Y_gt = []
 X_pred = []
 Y_pred = []
-hidden = (torch.zeros([args.batch_size, args.seq_len, args.hidden_dim]).to(device), torch.zeros([args.batch_size, args.seq_len, args.hidden_dim]).to(device)) 
+hidden = (torch.zeros([2, 1, args.hidden_dim]).to(device), torch.zeros([2, 1, args.hidden_dim]).to(device)) 
 # import pdb; pdb.set_trace() # mette i breakpoints
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
@@ -78,7 +78,7 @@ for i, (input_tensor, gt_tensor) in enumerate(tqdm(MyDataLoader)):
     input_tensor = input_tensor.to(device)
     gt_tensor = gt_tensor.to(device)
     with torch.no_grad():
-        out = model(input_tensor, hidden)
+        out, hidden = model(input_tensor, hidden)
         rel_error = ((out.view(-1, args.seq_len, OUT_DIM) - gt_tensor.view(-1, args.seq_len, OUT_DIM)).abs() / gt_tensor.view(-1, args.seq_len, OUT_DIM).abs()) #now it has BATCH_SIZE x args.seq_len x OUT_DIM shape
         total_rel_error += torch.mean(rel_error, dim=[0, 1])    # now it has OUT_DIM shape
         loss = loss_function(out.view(-1, args.seq_len, OUT_DIM), gt_tensor.view(-1, args.seq_len, OUT_DIM))
@@ -113,7 +113,7 @@ sub1 = fig.add_subplot(2, 1, 1)
 plt.plot(np.array(loss_vector), 'r')
 # plt.show()
 # fig = plt.figure()
-sub2 = fig.add_subplot(2, 2, 1)
+sub2 = fig.add_subplot(2, 1, 2)
 plt.plot(X_gt, Y_gt, 'r')
 plt.plot(X_pred, Y_pred, 'b')
 # plt.legend()
