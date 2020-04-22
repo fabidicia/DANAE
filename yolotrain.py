@@ -20,6 +20,7 @@ import LKF
 import random
 from datasets import SimpleDataset
 from torch.optim.lr_scheduler import MultiStepLR
+from tqdm import tqdm
 # import pdb; pdb.set_trace() # mette i breakpoints
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
