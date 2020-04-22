@@ -1,5 +1,5 @@
 import warnings
-warnings.filterwarnings('ignore',category=FutureWarning)
+warnings.filterwarnings('ignore',category=FutureWarning) 
 import os
 import torch
 import pandas as pd
@@ -24,8 +24,8 @@ parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/D
 parser.add_argument('--arch', type=str, default="MyLSTM")
 parser.add_argument('--seed', type=int)
 parser.add_argument('--hidden_dim', type=int, default=128)
-parser.add_argument('--batch_size', type=int, default=32)
-parser.add_argument('--seq_len', type=int, default=10)
+parser.add_argument('--batch_size', type=int, default=1)
+parser.add_argument('--seq_len', type=int, default=1)
 
 # parser.add_argument ('--n', type=int, required=True) # i_th value to display
 args = parser.parse_args()
@@ -39,13 +39,12 @@ else:
 
 INPUT_DIM = 9
 OUT_DIM = 7
-SEQ_LEN = args.seq_len
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 exper_path = 'runs/'+args.arch+'_experiment_'+str(args.seed)
 writer = SummaryWriter(exper_path)
-MyDataset = MotherOfIMUdata(args.folder, SEQ_LEN)
-MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size, shuffle=True, num_workers=1)
+MyDataset = MotherOfIMUdata(args.folder, args.seq_len)
+MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
 # creating my LSTM deep model
 if args.arch == "MyLSTM":
@@ -68,26 +67,26 @@ X_gt = []
 Y_gt = []
 X_pred = []
 Y_pred = []
-
+hidden = (torch.zeros([args.batch_size, args.seq_len, args.hidden_dim]).to(device), torch.zeros([args.batch_size, args.seq_len, args.hidden_dim]).to(device)) 
 # import pdb; pdb.set_trace() # mette i breakpoints
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
 model.load_state_dict(torch.load(exper_path+'/model.pth'))
 model.eval()     # #required every time i wanna TEST a model
 
-for i, (input_tensor, gt_tensor) in tqdm(enumerate(MyDataLoader)):
+for i, (input_tensor, gt_tensor) in enumerate(tqdm(MyDataLoader)):
     input_tensor = input_tensor.to(device)
     gt_tensor = gt_tensor.to(device)
     with torch.no_grad():
-        out = model(input_tensor)
-        rel_error = ((out.view(-1, SEQ_LEN, OUT_DIM) - gt_tensor.view(-1, SEQ_LEN, OUT_DIM)).abs() / gt_tensor.view(-1, SEQ_LEN, OUT_DIM).abs()) #now it has BATCH_SIZE x SEQ_LEN x OUT_DIM shape
+        out = model(input_tensor, hidden)
+        rel_error = ((out.view(-1, args.seq_len, OUT_DIM) - gt_tensor.view(-1, args.seq_len, OUT_DIM)).abs() / gt_tensor.view(-1, args.seq_len, OUT_DIM).abs()) #now it has BATCH_SIZE x args.seq_len x OUT_DIM shape
         total_rel_error += torch.mean(rel_error, dim=[0, 1])    # now it has OUT_DIM shape
-        loss = loss_function(out.view(-1, SEQ_LEN, OUT_DIM), gt_tensor.view(-1, SEQ_LEN, OUT_DIM))
-
-    X_out = out[0, 0]    # plane coordinates  
+        loss = loss_function(out.view(-1, args.seq_len, OUT_DIM), gt_tensor.view(-1, args.seq_len, OUT_DIM))
+    # import pdb; pdb.set_trace()
+    X_out = out[0, 0]    # plane coordinates
     Y_out = out[0, 1]
-    X_gt.append(gt_tensor[0])
-    Y_gt.append(gt_tensor[1])
+    X_gt.append(gt_tensor[0, 0, 0])
+    Y_gt.append(gt_tensor[0, 0, 1])
     X_pred.append(X_out.item())
     Y_pred.append(Y_out.item())
 
@@ -98,7 +97,6 @@ for i, (input_tensor, gt_tensor) in tqdm(enumerate(MyDataLoader)):
     writer.add_scalar('relative error Mean(point by point)',torch.mean(rel_error).item(), len(MyDataLoader.dataset) + i)
 
     loss_vector.append((torch.mean(loss)).item())
-    #import pdb; pdb.set_trace()
     rel_error_vector.append((torch.mean(rel_error)).item())
 
 
