@@ -15,15 +15,18 @@ import torch.nn.functional as F
 import torch.optim as optim
 from itertools import chain
 from datasets import IMUdata
-from networks import MyLSTM, MyLSTM2
+from networks import *
 from vio_master.LKF import LKF
+from datasets import MotherOfIMUdata
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep learning/Oxford Inertial Odometry Dataset/handheld/data5/syn/")
 parser.add_argument('--arch', type=str, default="MyLSTM")
 parser.add_argument('--seed', type=int)
-parser.add_argument('--epochs', type=int, default=200)
+parser.add_argument('--hidden_dim', type=int, default=128)
+parser.add_argument('--batch_size', type=int, default=32)
+parser.add_argument('--seq_len', type=int, default=10)
 
 # parser.add_argument ('--n', type=int, required=True) # i_th value to display
 args = parser.parse_args()
@@ -35,6 +38,10 @@ elif args.folder == "paolo":
 else:
     raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
 
+INPUT_DIM = 9
+OUT_DIM = 7
+SEQ_LEN = args.seq_len
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 exper_path = 'runs/'+args.arch+'_experiment_'+str(args.seed)
 writer = SummaryWriter(exper_path)
@@ -43,7 +50,7 @@ MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size,shuffle=True, nu
 
 # creating my LSTM deep model
 if args.arch == "MyLSTM":
-    model = MyLSTM(device=device,n_inputs=33)
+    model = MyLSTM(device=device, n_inputs=33)
 elif args.arch == "MyLSTM2":
     model = MyLSTM2()
 elif args.arch == "MyLSTMCell":
@@ -66,7 +73,7 @@ Y_pred = []
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
 model.load_state_dict(torch.load(exper_path+'/model.pth'))
-model.eval()     # #require every time i wanna TEST a model
+model.eval()     # #required every time i wanna TEST a model
 
 for i, (input_tensor, gt_tensor) in tqdm(enumerate(MyDataLoader)):
     input_tensor = input_tensor.to(device)
@@ -75,17 +82,17 @@ for i, (input_tensor, gt_tensor) in tqdm(enumerate(MyDataLoader)):
     with torch.no_grad():
         out = model(input_tensor)
         rel_error = ((out.view(-1, SEQ_LEN, OUT_DIM) - gt_tensor.view(-1, SEQ_LEN, OUT_DIM)).abs() / gt_tensor.view(-1, SEQ_LEN, OUT_DIM).abs()) #now it has BATCH_SIZE x SEQ_LEN x OUT_DIM shape
-        total_rel_error += torch.mean(rel_error,dim=[0,1]) # now it has OUT_DIM shape
+        total_rel_error += torch.mean(rel_error, dim=[0, 1])    # now it has OUT_DIM shape
         loss = loss_function(out.view(-1, SEQ_LEN, OUT_DIM), gt_tensor.view(-1, SEQ_LEN, OUT_DIM))
 
-    X_out = out[0, 0, 0]
+    X_out = out[0, 0, 0]    # plane coordinates  
     Y_out = out[0, 0, 1]
-    X_gt.append(gt_tran[0].item())
-    Y_gt.append(gt_tran[1].item())
+    X_gt.append(gt_tensor[0].item())
+    Y_gt.append(gt_tensor[1].item())
     X_pred.append(X_out.item())
     Y_pred.append(Y_out.item())
 
-    writer.add_scalar('test loss (point by point)',loss.item(), MyDataLoader.len + i)
+    writer.add_scalar('test loss (point by point)', loss.item(), MyDataLoader.len + i)
     # import pdb; pdb.set_trace()
     writer.add_scalar('relative error X(point by point)', rel_error[0, 0, 0].item(), MyDataLoader.len + i)
     writer.add_scalar('relative error Y(point by point)', rel_error[0, 0, 1].item(), MyDataLoader.len + i)
@@ -104,13 +111,13 @@ X_pred = [float(elem) for elem in X_pred]
 Y_pred = [float(elem) for elem in Y_pred]
 
 
-# fig1 = plt.figure()
-# ax1 = fig.add_subplot(2, 1, 1)
-# plt.plot(np.array(loss_vector), 'r')
-# plt.show()
 fig = plt.figure()
+sub1 = fig.add_subplot(2, 1, 1)
+plt.plot(np.array(loss_vector), 'r')
+# plt.show()
+# fig = plt.figure()
+sub2 = fig.add_subplot(2, 2, 1)
 plt.plot(X_gt, Y_gt, 'r')
 plt.plot(X_pred, Y_pred, 'b')
 # plt.legend()
 plt.show()
-# torch.manual_seed(1)    # seed è un numero che si da in input ad una funzione o libreria in modo che sia riproducibile
