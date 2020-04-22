@@ -44,8 +44,8 @@ SEQ_LEN = args.seq_len
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 exper_path = 'runs/'+args.arch+'_experiment_'+str(args.seed)
 writer = SummaryWriter(exper_path)
-MyDataset = MotherOfIMUdata(args.folder,SEQ_LEN)
-MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size,shuffle=True, num_workers=1)
+MyDataset = MotherOfIMUdata(args.folder, SEQ_LEN)
+MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size, shuffle=True, num_workers=1)
 
 # creating my LSTM deep model
 if args.arch == "MyLSTM":
@@ -62,6 +62,7 @@ loss_function = nn.MSELoss()
 loss_vector = []
 total_loss = 0.0
 total_rel_error = 0.0
+rel_error_vector = []
 print_freq = 9000
 X_gt = []
 Y_gt = []
@@ -77,33 +78,32 @@ model.eval()     # #required every time i wanna TEST a model
 for i, (input_tensor, gt_tensor) in tqdm(enumerate(MyDataLoader)):
     input_tensor = input_tensor.to(device)
     gt_tensor = gt_tensor.to(device)
-
     with torch.no_grad():
         out = model(input_tensor)
         rel_error = ((out.view(-1, SEQ_LEN, OUT_DIM) - gt_tensor.view(-1, SEQ_LEN, OUT_DIM)).abs() / gt_tensor.view(-1, SEQ_LEN, OUT_DIM).abs()) #now it has BATCH_SIZE x SEQ_LEN x OUT_DIM shape
         total_rel_error += torch.mean(rel_error, dim=[0, 1])    # now it has OUT_DIM shape
         loss = loss_function(out.view(-1, SEQ_LEN, OUT_DIM), gt_tensor.view(-1, SEQ_LEN, OUT_DIM))
 
-    X_out = out[0, 0, 0]    # plane coordinates  
-    Y_out = out[0, 0, 1]
-    X_gt.append(gt_tensor[0].item())
-    Y_gt.append(gt_tensor[1].item())
+    X_out = out[0, 0]    # plane coordinates  
+    Y_out = out[0, 1]
+    X_gt.append(gt_tensor[0])
+    Y_gt.append(gt_tensor[1])
     X_pred.append(X_out.item())
     Y_pred.append(Y_out.item())
 
-    writer.add_scalar('test loss (point by point)', loss.item(), MyDataLoader.len + i)
-    # import pdb; pdb.set_trace()
-    writer.add_scalar('relative error X(point by point)', rel_error[0, 0, 0].item(), MyDataLoader.len + i)
-    writer.add_scalar('relative error Y(point by point)', rel_error[0, 0, 1].item(), MyDataLoader.len + i)
-    writer.add_scalar('relative error Z(point by point)', rel_error[0, 0, 2].item(), MyDataLoader.len + i)
-    writer.add_scalar('relative error Mean(point by point)',torch.mean(rel_error).item(), MyDataLoader.len + i)
-    loss_vector.append(torch.mean(loss).item())
-    rel_error.append(torch.mean(rel_error).item())
+    writer.add_scalar('test loss (point by point)', loss.item(), len(MyDataLoader.dataset) + i)
+    writer.add_scalar('relative error X(point by point)', rel_error[0, 0, 0].item(), len(MyDataLoader.dataset) + i)
+    writer.add_scalar('relative error Y(point by point)', rel_error[0, 0, 1].item(), len(MyDataLoader.dataset) + i)
+    writer.add_scalar('relative error Z(point by point)', rel_error[0, 0, 2].item(), len(MyDataLoader.dataset) + i)
+    writer.add_scalar('relative error Mean(point by point)',torch.mean(rel_error).item(), len(MyDataLoader.dataset) + i)
+
+    loss_vector.append((torch.mean(loss)).item())
+    #import pdb; pdb.set_trace()
+    rel_error_vector.append((torch.mean(rel_error)).item())
 
 
 # plt.plot(loss_vector)
 # plt.plot(rel_error)
-import pdb; pdb.set_trace()
 X_gt = [float(elem) for elem in X_gt]
 Y_gt = [float(elem) for elem in Y_gt]
 X_pred = [float(elem) for elem in X_pred]
