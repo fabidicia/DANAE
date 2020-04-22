@@ -37,8 +37,8 @@ if args.folder == "fabiana":
     args.folder = "/mnt/c/Users/fabia/OneDrive/Desktop/Deep learning/Oxford Inertial Odometry Dataset/handheld/data2/syn/"
 elif args.folder == "paolo":
     args.folder = "/home/paolo/datasets/Oxford_Inertial_Odometry_Dataset/handheld/data2/syn/"
-#else:
- #   raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
+else:
+   raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -84,7 +84,7 @@ print_freq = 9000
 # fai X_gt.append(value.item().numpy())
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
-for epoch in range(args.epochs):
+for epoch in tqdm(range(args.epochs)):
     for i,(input_tensor, gt_tensor) in enumerate(MyDataLoader):
         input_tensor = input_tensor.to(device)
         gt_tensor = gt_tensor.to(device)
