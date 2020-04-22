@@ -144,9 +144,15 @@ class YOLO_LSTM(nn.Module):
         self.dropout = nn.Dropout(drop_prob)
         self.fc = nn.Linear(hidden_dim, output_size)
         
-    def forward(self, x):
-        lstm_out, hidden = self.lstm(x) # dimensione di x; batch_size * seq * element
-        lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)
-        #out = self.dropout(lstm_out)
-        out = self.fc(lstm_out)
-        return out
+    def forward(self, x,hidden_state = None):
+        if hidden_state is None:
+            lstm_out, hidden = self.lstm(x) # dimensione di x; batch_size * seq * element
+            lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)
+            out = self.fc(lstm_out)
+            return out
+        else:
+            lstm_out, hidden = self.lstm(x,hidden) # dimensione di x; batch_size * seq * element
+            lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)
+            out = self.fc(lstm_out)
+            return out, hidden
+
