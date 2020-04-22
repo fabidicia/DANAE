@@ -119,17 +119,13 @@ for epoch in tqdm(range(args.epochs)):
         # DA AGGIUNGERE IL CODICE PER SALVARE I PESI DEL MODELLO: torch.save(model,path_to_the_file)
 print("SEED EXPERIMENT: "+str(seed))
 
-#X_gt = [float(X_gt) for X_gt in X_gt]
-#Y_gt = [float(Y_gt) for Y_gt in Y_gt]
-#X_pred = [float(X_pred) for X_pred in X_pred]
-#Y_pred = [float(Y_pred) for Y_pred in Y_pred]
+# X_gt = [float(X_gt) for X_gt in X_gt]
+# Y_gt = [float(Y_gt) for Y_gt in Y_gt]
+# X_pred = [float(X_pred) for X_pred in X_pred]
+# Y_pred = [float(Y_pred) for Y_pred in Y_pred]
 
 
 fig = plt.figure()
 ax1 = fig.add_subplot(2, 1, 1)
 plt.plot(np.array(loss_vector), 'r')
 plt.show()
-
-#    del loss,input_list,grt_transl,input_tensor
-# torch.manual_seed(1)    # seed è un numero che si da in input ad una funzione o libreria in modo che sia riproducibile
-
