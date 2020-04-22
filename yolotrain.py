@@ -21,7 +21,6 @@ import random
 from datasets import SimpleDataset
 from torch.optim.lr_scheduler import MultiStepLR
 from tqdm import tqdm
-# import pdb; pdb.set_trace() # mette i breakpoints
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep learning/Oxford Inertial Odometry Dataset/handheld/data2/syn/")
@@ -81,7 +80,7 @@ scheduler = MultiStepLR(optimizer, milestones=[100,200], gamma=0.1)
 loss_vector = []
 total_loss = 0.0
 total_rel_error = 0.0
-print_freq = 9000
+print_freq = 900
 # fai X_gt.append(value.item().numpy())
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
@@ -107,11 +106,10 @@ for epoch in tqdm(range(args.epochs)):
             # print("epoch: " + str(epoch) + ", REL_ERROR X,Y,Z: %.2f, %.2f, %.2f" % 
             writer.add_scalar('training loss, mean over ' + str(print_freq), total_loss/print_freq, epoch * len(MyDataLoader.dataset) + i)
             #      total_rel_error[0].item()/2999, total_rel_error[1].item()/2999, total_rel_error[2].item()/2999)
-            rel_error_X = total_rel_error[0].item() / print_freq
-            rel_error_Y = total_rel_error[1].item() / print_freq
-            rel_error_Z = total_rel_error[2].item() / print_freq
+            total_rel_error = (total_rel_error / print_freq)
 
-            print("REL_ERROR: %.3f, %.3f, %.3f" % (rel_error_X, rel_error_Y, rel_error_Z) )
+            print("REL_ERROR: %.3f, %.3f, %.3f, %.3f, %.3f, %.3f, %.3f" % tuple([elem.item() for elem in total_rel_error]) )
+            print("MEAN_REL_ERROR: %.1f" %(torch.mean(total_rel_error).item() * 100.0))
             total_loss = 0.0
             total_rel_error = 0.0
     scheduler.step()
