@@ -29,8 +29,9 @@ parser.add_argument('--epochs', type=int, default=300)
 parser.add_argument('--hidden_dim', type=int, default=128)
 parser.add_argument('--batch_size', type=int, default=32)
 parser.add_argument('--seq_len', type=int, default=10)
+parser.add_argument('--dropout', type=float, default=0.0)
 parser.add_argument('--optim', type=str, default="SGD")
-parser.add_argument('--past_gt', action="store_true")
+parser.add_argument('--past_gt', type=bool, default=False)
 # parser.add_argument ('--n', type=int, required=True) # i_th value to display
 args = parser.parse_args()
 
@@ -68,7 +69,7 @@ elif args.arch == "MyLSTM2":
 elif args.arch == "MyLSTMCell":
     model = MyLSTMCell()
 elif args.arch == "YOLO_LSTM":
-    model = YOLO_LSTM(input_dim=INPUT_DIM, output_size=OUT_DIM, hidden_dim=args.hidden_dim, n_layers=2, drop_prob=0.0)
+    model = YOLO_LSTM(input_dim=INPUT_DIM, output_size=OUT_DIM, hidden_dim=args.hidden_dim, n_layers=2, drop_prob=args.dropout)
 model = model.to(device)    # casting the model to the correct device, cpu or gpu
 
 
@@ -96,7 +97,10 @@ for epoch in tqdm(range(args.epochs)):
         input_tensor = input_tensor.to(device)
         gt_tensor = gt_tensor.to(device)
         if args.past_gt:
-            past_gt = torch.roll(past_gt, shifts=3)
+            past_gt = torch.roll(gt_tensor, shifts=1, dims=1).detach() #rolling along sequence axis by 1 step.
+            input_tensor = input_tensor[:,1:,:] #i'm removing first element, which belongs to seq_len+1 sequence, so that I have now a seq_len tensor :)
+            gt_tensor = gt_tensor[:,1:,:]       # same
+            past_gt = past_gt[:,1:,:]       # same
             input_tensor = torch.cat([input_tensor, past_gt], -1) #concatenating along last axis, which is the input data axis! -2(equivalent to 1) would be sequences, -3(equivalent to 0) to  batch
         out = model(input_tensor)
         rel_error = ((out.view(-1, SEQ_LEN, OUT_DIM) - gt_tensor.view(-1, SEQ_LEN, OUT_DIM)).abs() / gt_tensor.view(-1, SEQ_LEN, OUT_DIM).abs()) #now it has BATCH_SIZE x SEQ_LEN x OUT_DIM shape

@@ -155,5 +155,6 @@ class YOLO_LSTM(nn.Module):
         else:
             lstm_out, hidden_state = self.lstm(x, hidden_state) # dimensione di x; batch_size * seq * element
             lstm_out = lstm_out.contiguous().view(-1, self.hidden_dim)
+            lstm_out = self.dropout(lstm_out)
             out = self.fc(lstm_out)
             return out, hidden_state
