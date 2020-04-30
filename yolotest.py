@@ -20,8 +20,8 @@ from datasets import MotherOfIMUdata
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
-parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep learning/Oxford Inertial Odometry Dataset/handheld/data5/syn/")
-parser.add_argument('--arch', type=str, default="MyLSTM")
+parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep_learning/Oxio_Dataset/handheld/data5/syn/")
+parser.add_argument('--arch', type=str, default="YOLO_LSTM")
 parser.add_argument('--seed', type=int)
 parser.add_argument('--hidden_dim', type=int, default=128)
 parser.add_argument('--batch_size', type=int, default=1)
@@ -31,7 +31,7 @@ parser.add_argument('--seq_len', type=int, default=1)
 args = parser.parse_args()
 
 if args.folder == "fabiana":
-    args.folder = "/mnt/c/Users/fabia/OneDrive/Desktop/Deep learning/Oxford Inertial Odometry Dataset/handheld/data5/syn/"
+    args.folder = "/mnt/c/Users/fabia/OneDrive/Desktop/Deep_learning/Oxio_Dataset/handheld/data5/syn/"
 elif args.folder == "paolo":
     args.folder = "/home/paolo/datasets/Oxford_Inertial_Odometry_Dataset/handheld/data5/syn/"
 else:
