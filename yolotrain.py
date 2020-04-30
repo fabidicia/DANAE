@@ -24,7 +24,7 @@ from tqdm import tqdm
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep_learning/Oxio_Dataset/handheld/data2/syn/")
-parser.add_argument('--arch', type=str, default="MyLSTM")
+parser.add_argument('--arch', type=str, default="YOLO_LSTM")
 parser.add_argument('--epochs', type=int, default=300)
 parser.add_argument('--hidden_dim', type=int, default=128)
 parser.add_argument('--batch_size', type=int, default=32)
