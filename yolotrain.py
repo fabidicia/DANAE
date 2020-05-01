@@ -41,8 +41,6 @@ elif args.folder == "paolo":
     args.folder = "/home/paolo/datasets/Oxford_Inertial_Odometry_Dataset/handheld/data2/syn/"
 elif args.folder == "fabianassh":
     args.folder = "/home/fabianadiciaccio/Datasets/Oxio_Dataset/handheld/data2/syn/"
-else:
-   raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
