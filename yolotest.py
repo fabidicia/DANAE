@@ -44,7 +44,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 exper_path = 'runs/'+args.arch+'_experiment_'+str(args.seed)
 writer = SummaryWriter(exper_path)
 MyDataset = MotherOfIMUdata(args.folder, args.seq_len)
-MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size, shuffle=True, num_workers=0)
+MyDataLoader = DataLoader(MyDataset, batch_size=args.batch_size, shuffle=False, num_workers=0)
 
 # creating my LSTM deep model
 if args.arch == "MyLSTM":
@@ -98,7 +98,7 @@ for i, (input_tensor, gt_tensor) in enumerate(tqdm(MyDataLoader)):
 
     loss_vector.append((torch.mean(loss)).item())
     rel_error_vector.append((torch.mean(rel_error)).item())
-
+writer.add_scalar('% relative error mean over the whole dataset',torch.mean(total_rel_error).item() * 100.0 / len(MyDataLoader),0)
 
 # plt.plot(loss_vector)
 # plt.plot(rel_error)
