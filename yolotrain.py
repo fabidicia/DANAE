@@ -23,8 +23,8 @@ from torch.optim.lr_scheduler import MultiStepLR
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
-parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep learning/Oxford Inertial Odometry Dataset/handheld/data2/syn/")
-parser.add_argument('--arch', type=str, default="MyLSTM")
+parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep_learning/Oxio_Dataset/handheld/data2/syn/")
+parser.add_argument('--arch', type=str, default="YOLO_LSTM")
 parser.add_argument('--epochs', type=int, default=300)
 parser.add_argument('--hidden_dim', type=int, default=128)
 parser.add_argument('--batch_size', type=int, default=32)
@@ -36,9 +36,11 @@ parser.add_argument('--past_gt', type=bool, default=False)
 args = parser.parse_args()
 
 if args.folder == "fabiana":
-    args.folder = "/mnt/c/Users/fabia/OneDrive/Desktop/Deep learning/Oxford Inertial Odometry Dataset/handheld/data2/syn/"
+    args.folder = "/mnt/c/Users/fabia/OneDrive/Desktop/Deep_learning/Oxio_Dataset/handheld/data2/syn/"
 elif args.folder == "paolo":
     args.folder = "/home/paolo/datasets/Oxford_Inertial_Odometry_Dataset/handheld/data2/syn/"
+elif args.folder == "fabianassh":
+    args.folder = "/home/fabianadiciaccio/Datasets/Oxio_Dataset/handheld/data2/syn/"
 else:
    raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
 
@@ -91,9 +93,9 @@ print_freq = 900
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
 
-
 for epoch in tqdm(range(args.epochs)):
     for i,(input_tensor, gt_tensor) in enumerate(MyDataLoader):
+        
         input_tensor = input_tensor.to(device)
         gt_tensor = gt_tensor.to(device)
         if args.past_gt:
