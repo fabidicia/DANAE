@@ -24,6 +24,10 @@ class IMUdata(Dataset):
     def __getitem__(self, n):   # METODO
 
         # train set
+        roll = self.imu_mat[n, 1]
+        pitch = self.imu_mat[n, 2]
+        yaw = self.imu_mat[n, 3]
+
         gyr_x = self.imu_mat[n, 4]
         gyr_y = self.imu_mat[n, 5]
         gyr_z = self.imu_mat[n, 6]
@@ -49,14 +53,14 @@ class IMUdata(Dataset):
         rot_z = self.gt_mat[n, 7]
         rot_w = self.gt_mat[n, 8]
 
-        gyr = gyr_x, gyr_y, gyr_z
-        acc_v = acc_x, acc_y, acc_z # è una tupla! non ha parentesi infatti. oppure potrebbe averle tonde
-        mag = mag_x, mag_y, mag_z
+        gyr = gyr_x.astype(np.float), gyr_y.astype(np.float), gyr_z.astype(np.float)
+        acc_v = acc_x.astype(np.float), acc_y.astype(np.float), acc_z.astype(np.float) # è una tupla! non ha parentesi infatti. oppure potrebbe averle tonde
+        mag = mag_x.astype(np.float), mag_y.astype(np.float), mag_z.astype(np.float)
+        orient = roll.astype(np.float), pitch.astype(np.float), yaw.astype(np.float)
+        gt_transl = transl_x.astype(np.float), transl_y.astype(np.float), transl_z.astype(np.float)
+        gt_rot = rot_x.astype(np.float), rot_y.astype(np.float), rot_z.astype(np.float), rot_w.astype(np.float)
 
-        gt_transl = transl_x, transl_y, transl_z
-        gt_rot = rot_x, rot_y, rot_z, rot_w
-
-        return time, acc_v, gyr, mag, gt_rot, gt_transl #decreta chiusura del metodo, deve essere l'ultima riga
+        return time, orient, acc_v, gyr, mag, gt_rot, gt_transl #decreta chiusura del metodo, deve essere l'ultima riga
 
 
 class MotherOfIMUdata(Dataset):
@@ -81,34 +85,6 @@ class MotherOfIMUdata(Dataset):
         train_sample = torch.stack(train_sample) #size: 10x3
         gt_sample = torch.stack(gt_sample) #size: 10x2
         return train_sample, gt_sample
-
-
-def simple_data():
-    gt_list = []
-    train_list = []
-    # # Train and GT Data cretor
-    for i in range(0, 10000, 1):
-        inputs = [sin(3.14*i/10), cos(3.14*i/10),atan(i/10)]
-        train_list.append(torch.Tensor(inputs))
-        gt = [sin(3.14*(i+1)/10), cos(3.14*(i+1)/10),atan((i+1)/10)]
-        gt_list.append(torch.Tensor(gt))
-    return train_list, gt_list
-
-def simple_data_old():
-    gt_list = []
-    train_list = []
-    # # Train and GT Data cretor
-    for i in range(0, 10000, 1):
-        inputs = [i/10000, (i + 1)/10000, (i - 2)/10000]
-        train_list.append(torch.Tensor(inputs))
-        summ = torch.Tensor([ sin(3.14*sum(inputs)) ])
-        tmp = [float(j)*float(j) for j in inputs]
-        quad = torch.Tensor([sin( 3.14*sum(tmp))])
-        tmp2 = [float(j)*float(j)*float(j) for j in inputs]  
-        cube = torch.Tensor([sin(3.14*sum(tmp2))])
-        gt = [summ,quad,cube]
-        gt_list.append(gt)
-    return train_list, gt_list
 
 class SimpleDataset(Dataset):
     def __init__(self,seq_len=10):
