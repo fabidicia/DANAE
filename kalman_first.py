@@ -21,6 +21,7 @@ from tqdm import tqdm
 import math
 import scipy.io
 import math
+from datasets import datasetMatlabIMU
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep_learning/Oxio_Dataset/handheld/data2/syn/")
@@ -34,10 +35,13 @@ elif args.folder == "paolo":
     args.folder = "/home/paolo/datasets/Oxford_Inertial_Odometry_Dataset/handheld/data2/syn/"
 elif args.folder == "fabianassh":
     args.folder = "/home/fabianadiciaccio/Datasets/Oxio_Dataset/handheld/data2/syn/"
-else:
-   raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
+elif args.folder == "prova":
+    args.folder = "/mnt/c/Users/fabia/OneDrive/Desktop"
+#else:
+   #raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-MyDataset = IMUdata(args.folder)
+MyDataset = datasetMatlabIMU()
+#MyDataset = datasetMatlabIMU(args.folder)
 #yDataLoader = DataLoader(MyDataset)
 
 ## Matrices 
@@ -46,8 +50,8 @@ A=np.matrix([[1,0,0,-dt,0,0],[0,1,0,0,-dt,0],[0,0,1,0,0,-dt],[0,0,0,1,0,0],[0,0,
 B = np.matrix([[dt,0,0],[0,dt,0],[0,0,dt],[0,0,0],[0,0,0],[0,0,0]])
 C = np.matrix([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0]])
 P = np.identity(6)
-Q = np.identity(6) * .00000008
-R = np.matrix([[0.1, 0, 0], [0, .1, 0], [0, 0, 10]])
+Q = np.identity(6) * 100
+R = np.matrix([[.1, 0, 0], [0, .1, 0], [0, 0, .1]])
 state_estimate = np.transpose([[0, 0, 0, 0, 0, 0]])
 ## Initialization
 
