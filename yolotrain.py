@@ -41,8 +41,6 @@ elif args.folder == "paolo":
     args.folder = "/home/paolo/datasets/Oxford_Inertial_Odometry_Dataset/handheld/data2/syn/"
 elif args.folder == "fabianassh":
     args.folder = "/home/fabianadiciaccio/Datasets/Oxio_Dataset/handheld/data2/syn/"
-else:
-   raise Exception("Are u paolo or fabiana? Write the answer to define the folder :)")
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -113,13 +111,13 @@ for epoch in tqdm(range(args.epochs)):
         # hidden = (torch.rand(1,1,3), torch.rand(1,1,3)) #we reset hidden state every 30 iters
         total_loss += loss.item()
         optimizer.zero_grad()
-        writer.add_scalar('training loss (point by point)', loss.item(), epoch * len(MyDataLoader.dataset) + i)
+        writer.add_scalar('TRAIN: loss ', loss.item(), epoch * len(MyDataLoader.dataset) + i)
         loss_vector.append(loss.item())
 
         if i % print_freq == 0:
             print("epoch: " + str(epoch) + ", loss: " + str(total_loss/print_freq) )
             # print("epoch: " + str(epoch) + ", REL_ERROR X,Y,Z: %.2f, %.2f, %.2f" % 
-            writer.add_scalar('training loss, mean over ' + str(print_freq), total_loss/print_freq, epoch * len(MyDataLoader.dataset) + i)
+            writer.add_scalar('TRAIN: loss, mean over ' + str(print_freq), total_loss/print_freq, epoch * len(MyDataLoader.dataset) + i)
             #      total_rel_error[0].item()/2999, total_rel_error[1].item()/2999, total_rel_error[2].item()/2999)
             total_rel_error = (total_rel_error / print_freq)
 
