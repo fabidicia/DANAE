@@ -2,11 +2,12 @@ import numpy as np
 from torch.utils.data import Dataset
 import torch
 import csv
-from math import sin,cos,atan
+from math import sin, cos, atan
 import scipy.io
+from squaternion import Quaternion
+
 
 class IMUdata(Dataset):
-
     def __init__(self, path):
         self.path = path
         with open(self.path+"imu2.csv") as imudata:
@@ -48,7 +49,7 @@ class IMUdata(Dataset):
         transl_y = self.gt_mat[n, 3]
         transl_z = self.gt_mat[n, 4]
 
-        # pose in quaternion format
+        # pose in quaternion to euler
         rot_x = self.gt_mat[n, 5]
         rot_y = self.gt_mat[n, 6]
         rot_z = self.gt_mat[n, 7]
@@ -59,10 +60,10 @@ class IMUdata(Dataset):
         mag = mag_x.astype(np.float), mag_y.astype(np.float), mag_z.astype(np.float)
         orient = roll.astype(np.float), pitch.astype(np.float), yaw.astype(np.float)
         gt_transl = transl_x.astype(np.float), transl_y.astype(np.float), transl_z.astype(np.float)
+        #gt_rot = phi.astype(np.float), theta.astype(np.float), psi.astype(np.float)
         gt_rot = rot_x.astype(np.float), rot_y.astype(np.float), rot_z.astype(np.float), rot_w.astype(np.float)
 
-        return time, orient, acc_v, gyr, mag, gt_rot, gt_transl #decreta chiusura del metodo, deve essere l'ultima riga
-
+        return time, orient, acc_v, gyr, mag, gt_rot, gt_transl # decreta chiusura del metodo, deve essere l'ultima riga
 
 class MotherOfIMUdata(Dataset):
     def __init__(self,path,seq_len=10):
@@ -82,10 +83,12 @@ class MotherOfIMUdata(Dataset):
             gt_rot = [float(e) for e in gt_rot]
             gt_transl = [float(e) for e in gt_transl]
             train_sample.append(torch.tensor([acc_v[0],acc_v[1],acc_v[2],gyr[0],gyr[1],gyr[2],mag[0],mag[1],mag[2]]))
+            
             gt_sample.append(torch.tensor([gt_rot[0],gt_rot[1],gt_rot[2],gt_rot[3],gt_transl[0],gt_transl[1],gt_transl[2]]))
         train_sample = torch.stack(train_sample) #size: 10x3
         gt_sample = torch.stack(gt_sample) #size: 10x2
         return train_sample, gt_sample
+
 
 class SimpleDataset(Dataset):
     def __init__(self,seq_len=10):
@@ -104,6 +107,8 @@ class SimpleDataset(Dataset):
         input_list = torch.stack(input_list)
         gt_list = torch.stack(gt_list)
         return input_list, gt_list
+
+
 class datasetMatlabIMU(Dataset):
 
     def __init__(self, path="/mnt/c/Users/fabia/OneDrive/Desktop/Deep_Learning/dataMatrix.mat"):
@@ -125,7 +130,6 @@ class datasetMatlabIMU(Dataset):
         gyr = tuple(elem for elem in self.gyr_s[n])
         acc_v = tuple(elem for elem in self.acc_s[n])
         mag = tuple(elem for elem in self.mag_s[n])
-                
 
         time = self.epoch_acc[n, 0] # BOOH non so cosa ci sta qua dentro!
         gt_rot = None
