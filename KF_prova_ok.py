@@ -30,10 +30,10 @@ parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Documenti/Scripts/inertial_odom-master/dataset")
 parser.add_argument('--imudatafile', type=str, default="/v2/imu0/data.csv")
 parser.add_argument('--gtdatafile', type=str, default="/state_groundtruth_estimate0/data.csv")
-parser.add_argument('--phi', type=float)
+parser.add_argument('--phi', type=float, required=True)
 args = parser.parse_args()
 
-if args.phi == "none":
+if args.phi is None:
   raise Exception("You must define the spectral density by which multiply the Q matrix")
 
 # OXFORD Dataset

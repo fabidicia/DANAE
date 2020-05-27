@@ -28,10 +28,10 @@ from pykalman import KalmanFilter
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--folder', type=str, default="/mnt/c/Users/fabia/OneDrive/Desktop/Deep_learning/dataMatrix.mat")
-parser.add_argument('--phi', type=float)
+parser.add_argument('--phi', type=float, required=True)
 args = parser.parse_args()
 
-if args.phi == "none":
+if args.phi is None:
   raise Exception("You must define the spectral density by which multiply the Q matrix")
 
 # OXFORD Dataset
