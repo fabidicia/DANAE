@@ -52,7 +52,7 @@ dt = 0.1
 # matrice di stato/transizione 3x3
 A = np.identity(3) * 20  ##domanda: anche qui si puo' usare sia lista di liste che np.array ??
 A = A.tolist()
-# matrice di controllo 6x3
+# matrice di controllo 3x3
 B = np.identity(3)  ##domanda: anche qui si puo' usare sia lista di liste che np.array ??
 B = B.tolist()
 
@@ -120,6 +120,9 @@ gt_euler = []
 phi_diff_gtkf = []
 theta_diff_gtkf = []
 psi_diff_gtkf = []
+phi_diff_gtkf_rel = []
+theta_diff_gtkf_rel = []
+psi_diff_gtkf_rel = []
 
 for t in range(1, len(MyDataset)): # il caso t=0 l'ho sviluppato prima del for
     times, orient, acc_v, gyr, mag, gt_rot, _ = MyDataset.__getitem__(t)
@@ -128,9 +131,13 @@ for t in range(1, len(MyDataset)): # il caso t=0 l'ho sviluppato prima del for
     measurements = [acc_v[0],acc_v[1],acc_v[2], gyr[0], gyr[1], gyr[2]]
     kfstate[t], kfcov[t] = (kf.filter_update(kfstate[t-1], kfcov[t-1], measurements))
 
-    phi_diff = euler_ang[0] - kfstate[0]
-    theta_diff = euler_ang[1] - kfstate[1]
-    psi_diff = euler_ang[2] - kfstate[2]
+    phi_diff = euler_ang[0] - kfstate[t,0]
+    theta_diff = euler_ang[1] - kfstate[t,1]
+    psi_diff = euler_ang[2] - kfstate[t,2]
+
+    phi_diff_rel = phi_diff / euler_ang[0]
+    theta_diff_rel = theta_diff / euler_ang[1]
+    psi_diff_rel = psi_diff / euler_ang[2]
     # giusto per salvarmi i dati
     orient_list.append(orient)
     kfstate_list.append(kfstate[t])
@@ -139,6 +146,10 @@ for t in range(1, len(MyDataset)): # il caso t=0 l'ho sviluppato prima del for
     theta_diff_gtkf.append(theta_diff)
     psi_diff_gtkf.append(psi_diff)
 
+    phi_diff_gtkf_rel.append(phi_diff_rel)
+    theta_diff_gtkf_rel.append(theta_diff_rel)
+    psi_diff_gtkf_rel.append(psi_diff_rel)
+
 # kf = KalmanFilter.em(measurements, n_iter=5)
 # (smoothed_state_means, smoothed_state_covariances) = kf.smooth(measurements)
 
@@ -146,29 +157,35 @@ phi_list = [elem[2] for elem in orient_list]
 kf_phi_list = [elem[0] for elem in kfstate_list]
 gt_phi_list = [elem[0] for elem in gt_euler]
 phi_diff_gtkf_list = [elem for elem in phi_diff_gtkf]
+phi_diff_gtkf_list_rel = [elem for elem in phi_diff_gtkf_rel]
 
 print("Standard Deviation of phi_list is % s " % (statistics.stdev(phi_list)))
 print("Standard Deviation of kf_phi_list is % s " % (statistics.stdev(kf_phi_list)))
 print("Standard Deviation of gt_phi_list is % s " % (statistics.stdev(gt_phi_list)))
 print("Mean difference between GT phi and KF phi is % s " % (mean(phi_diff_gtkf_list)))
+print("Mean rel error between GT phi and KF phi is % s " % (mean(phi_diff_gtkf_list_rel)))
 
 theta_list = [elem[1] for elem in orient_list]
 kf_theta_list = [elem[1] for elem in kfstate_list]
 gt_theta_list = [elem[1] for elem in gt_euler]
 theta_diff_gtkf_list = [elem for elem in theta_diff_gtkf]
+theta_diff_gtkf_list_rel = [elem for elem in theta_diff_gtkf_rel]
 print("Standard Deviation of theta is % s " % (statistics.stdev(theta_list)))
 print("Standard Deviation of kf_theta is % s " % (statistics.stdev(kf_theta_list)))
 print("Standard Deviation of gt_theta is % s " % (statistics.stdev(gt_theta_list)))
 print("Mean difference between GT theta and KF theta is % s " % (mean(theta_diff_gtkf_list)))
+print("Mean rel error between GT theta and KF theta is % s " % (mean(theta_diff_gtkf_list_rel)))
 
 psi_list = [elem[0] for elem in orient_list]
 kf_psi_list = [elem[2] for elem in kfstate_list]
 gt_psi_list = [elem[2] for elem in gt_euler]
 psi_diff_gtkf_list = [elem for elem in psi_diff_gtkf]
+psi_diff_gtkf_list_rel = [elem for elem in psi_diff_gtkf_rel]
 print("Standard Deviation of psi is % s " % (statistics.stdev(psi_list)))
 print("Standard Deviation of kf_psi is % s " % (statistics.stdev(kf_psi_list)))
 print("Standard Deviation of gt_psi is % s " % (statistics.stdev(gt_psi_list)))
 print("Mean difference between GT psi and KF psi is % s " % (mean(psi_diff_gtkf_list)))
+print("Mean rel error between GT psi and KF psi is % s " % (mean(psi_diff_gtkf_list_rel)))
 
 times_list = [i for i in range(1, n_timesteps)]
 
