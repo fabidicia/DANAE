@@ -179,3 +179,55 @@ class DatasetMPU9250(Dataset):
         phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
         theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
         return [phi, theta]
+
+
+class Dataset9250(Dataset):
+    def __init__(self, path = "./data/9250/"):
+        self.path = path
+        with open(self.path+"9250Data.csv") as imudata:
+            imu_iter = csv.reader(imudata)
+            imulist = [line for line in imu_iter]
+            self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
+        self.len = self.imu_mat.shape[0]
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, i):   # METODO
+
+        # train set [m/S^2] and [rad/s]
+        Gx = float(self.imu_mat[i, 3]) * math.pi / (180.0 * 131.0)
+        Gy = float(self.imu_mat[i, 4]) * math.pi / (180.0 * 131.0)
+        Gz = float(self.imu_mat[i, 5]) * math.pi / (180.0 * 131.0)
+        Ax = float(self.imu_mat[i, 6]) / 16384.0
+        Ay = float(self.imu_mat[i, 7]) / 16384.0
+        Az = float(self.imu_mat[i, 8]) / 16384.0
+        Mx = float(self.imu_mat[i, 9])
+        My = float(self.imu_mat[i, 10])
+        Mz = float(self.imu_mat[i, 11])
+        return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
+
+    def get_orient(self, i):   # METODO
+
+        # train set [m/S^2] and [rad/s]
+        roll = float(self.imu_mat[i, 0]) * math.pi / (180.0 * 131.0)
+        pitch = float(self.imu_mat[i, 1]) * math.pi / (180.0 * 131.0)
+        yaw = float(self.imu_mat[i, 2]) * math.pi / (180.0 * 131.0)
+        return roll, pitch, yaw
+
+    def get_gyro_bias(self, N=100):
+        bx = 0.0
+        by = 0.0
+        bz = 0.0
+        for i in range(N):
+            [gx, gy, gz, _, _, _, _, _, _,] = self.__getitem__(i)
+            bx += gx
+            by += gy
+            bz += gz
+        return [bx / float(N), by / float(N), bz / float(N)] 
+
+    def get_acc_angles(self, i):
+        [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
+        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
+        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
+        return [phi, theta]
