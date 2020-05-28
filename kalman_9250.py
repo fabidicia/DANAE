@@ -83,6 +83,9 @@ for i in range(N):
     
     # Gey gyro measurements and calculate Euler angle derivatives
     [p, q, r, _, _, _, _, _, _,] = imu.__getitem__(i)
+    p = p - .349
+    q = q - .349
+    r = r - .349
     phi_dot = p + sin(phi_hat) * tan(theta_hat) * q + cos(phi_hat) * tan(theta_hat) * r
     theta_dot = cos(phi_hat) * q - sin(phi_hat) * r
 
