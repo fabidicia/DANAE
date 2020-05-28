@@ -40,8 +40,8 @@ B = np.array([[dt, 0],
 
 C = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
 P = np.eye(4)
-Q = np.eye(4)* .0008
-R = np.array([[0.1,0],[0,0.1]])
+Q = np.eye(4) * 200
+R = np.eye(2) * .1
 
 state_estimate = np.array([[0], [0], [0], [0]]) #roll and pitch
 
@@ -74,15 +74,13 @@ sleep(2)
 
 print("Running...")
 for i in range(N):
-
-
     # Get accelerometer measurements and remove offsets
     [phi_acc, theta_acc] = imu.get_acc_angles(i)
-    phi_acc -= phi_offset
-    theta_acc -= theta_offset
-    
+    # phi_acc -= phi_offset
+    # theta_acc -= theta_offset
+
     # Gey gyro measurements and calculate Euler angle derivatives
-    [p, q, r, _, _, _, _, _, _,] = imu.__getitem__(i)
+    [p, q, r, _, _, _, _, _, _] = imu.__getitem__(i)
     p = p - .349
     q = q - .349
     r = r - .349
@@ -102,31 +100,31 @@ for i in range(N):
 
     phi_hat = state_estimate[0]
     theta_hat = state_estimate[2]
-    phi_est.append(phi_hat)
-    theta_est.append(theta_hat)
+    phi_est.append(phi_hat*57)
+    theta_est.append(theta_hat*57)
 
     roll, pitch, _ = imu.get_orient(i)
     phi_orient.append(roll)
     theta_orient.append(pitch)
 
     # Display results
-    #print("Phi: " + str(np.round(phi_hat * 180.0 / pi, 1)) + " Theta: " + str(np.round(theta_hat * 180.0 / pi, 1)))
-    #print("Phi: " + str(np.round(roll * 180.0 / pi, 1)) + " Theta: " + str(np.round(pitch * 180.0 / pi, 1)))
+    # print("Phi: " + str(np.round(phi_hat * 180.0 / pi, 1)) + " Theta: " + str(np.round(theta_hat * 180.0 / pi, 1)))
+    # print("Phi: " + str(np.round(roll * 180.0 / pi, 1)) + " Theta: " + str(np.round(pitch * 180.0 / pi, 1)))
 
-    #writer.add_scalar('Phi Angle_Degrees', {'kf_phi': np.round(phi_hat * 180.0 / pi, 1),
+    # writer.add_scalar('Phi Angle_Degrees', {'kf_phi': np.round(phi_hat * 180.0 / pi, 1),
     #                                        'orient_phi': np.round(pitch * 180.0 / pi, 1)}, i)
-    #writer.add_scalar('Theta Angle_Degrees', {'kf_theta': np.round(theta_hat * 180.0 / pi, 1), 
+    # writer.add_scalar('Theta Angle_Degrees', {'kf_theta': np.round(theta_hat * 180.0 / pi, 1), 
     #                                          'orient_theta': np.round(pitch * 180.0 / pi, 1)}, i)
-    
+
     writer.add_scalar('kf_phi_degrees', np.round(phi_hat * 180.0 / pi, 1), i+1)
     writer.add_scalar('kf_theta_degrees', np.round(theta_hat * 180.0 / pi, 1), i+1)
     writer.add_scalar('orient_phi_degrees', np.round(roll * 180.0 / pi, 1), i+1)
     writer.add_scalar('orient_theta_degrees', np.round(pitch * 180.0 / pi, 1), i+1)
+
+
 times_list = [i for i in range(0, N)]
-plot_tensorboard(writer, [theta_est, theta_orient], ['b', 'r'], ['theta_kf', 'theta_orient'])
-#plot_tensorboard(writer, [theta_orient], ['r'], ['orient_theta'])
 plot_tensorboard(writer, [phi_est, phi_orient], ['b', 'r'], ['phi_kf', 'phi_orient'])
-#plot_tensorboard(writer, [phi_orient], ['r'], ['orient_phi'])
-
-
+# plot_tensorboard(writer, [phi_orient], ['r'], ['orient_phi'])
+plot_tensorboard(writer, [theta_est, theta_orient], ['b', 'r'], ['theta_kf', 'theta_orient'])
+# plot_tensorboard(writer, [theta_orient], ['r'], ['orient_theta'])
 writer.close()
