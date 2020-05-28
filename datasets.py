@@ -196,12 +196,12 @@ class Dataset9250(Dataset):
     def __getitem__(self, i):   # METODO
 
         # train set [m/S^2] and [rad/s]
-        Gx = float(self.imu_mat[i, 3]) * math.pi / (180.0 * 131.0)
-        Gy = float(self.imu_mat[i, 4]) * math.pi / (180.0 * 131.0)
-        Gz = float(self.imu_mat[i, 5]) * math.pi / (180.0 * 131.0)
-        Ax = float(self.imu_mat[i, 6]) / 16384.0
-        Ay = float(self.imu_mat[i, 7]) / 16384.0
-        Az = float(self.imu_mat[i, 8]) / 16384.0
+        Gx = float(self.imu_mat[i, 3])
+        Gy = float(self.imu_mat[i, 4])
+        Gz = float(self.imu_mat[i, 5])
+        Ax = float(self.imu_mat[i, 6])
+        Ay = float(self.imu_mat[i, 7])
+        Az = float(self.imu_mat[i, 8])
         Mx = float(self.imu_mat[i, 9])
         My = float(self.imu_mat[i, 10])
         Mz = float(self.imu_mat[i, 11])
@@ -210,9 +210,9 @@ class Dataset9250(Dataset):
     def get_orient(self, i):   # METODO
 
         # train set [m/S^2] and [rad/s]
-        roll = float(self.imu_mat[i, 0]) * math.pi / (180.0 * 131.0)
-        pitch = float(self.imu_mat[i, 1]) * math.pi / (180.0 * 131.0)
-        yaw = float(self.imu_mat[i, 2]) * math.pi / (180.0 * 131.0)
+        roll = float(self.imu_mat[i, 0])
+        pitch = float(self.imu_mat[i, 1])
+        yaw = float(self.imu_mat[i, 2])
         return roll, pitch, yaw
 
     def get_gyro_bias(self, N=100):
