@@ -5,7 +5,8 @@ import csv
 from math import sin, cos, atan
 import scipy.io
 from squaternion import Quaternion
-
+import math
+from time import sleep
 
 class IMUdata(Dataset):
     def __init__(self, path):
@@ -135,3 +136,47 @@ class datasetMatlabIMU(Dataset):
         gt_rot = None
         gt_transl = None
         return time, orient, acc_v, gyr, mag, gt_rot, gt_transl #decreta chiusura del metodo, deve essere l'ultima riga
+
+
+class DatasetMPU9250(Dataset):
+    def __init__(self, path = "/mnt/c/Users/fabia/OneDrive/Documenti/Scripts/InOD_trials/Attitude-Estimation/"):
+        self.path = path
+        with open(self.path+"imu_data.csv") as imudata:
+            imu_iter = csv.reader(imudata)
+            imulist = [line for line in imu_iter]
+            self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
+        self.len = self.imu_mat.shape[0]
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, N):   # METODO
+
+        # train set [m/S^2] and [rad/s]
+        time = self.imu_mat[N, 0]
+        Ax = float(self.imu_mat[N, 1]) / 16384.0
+        Ay = float(self.imu_mat[N, 2]) / 16384.0
+        Az = float(self.imu_mat[N, 3]) / 16384.0
+        Gx = float(self.imu_mat[N, 4]) * math.pi / (180.0 * 131.0)
+        Gy = float(self.imu_mat[N, 5]) * math.pi / (180.0 * 131.0)
+        Gz = float(self.imu_mat[N, 6]) * math.pi / (180.0 * 131.0)
+
+        return time, Ax, Ay, Az, Gx, Gy, Gz
+
+    def get_gyro_bias(self, N):
+        bx = 0.0
+        by = 0.0
+        bz = 0.0
+        for i in range(N):
+            [_, _, _, _, gx, gy, gz] = self.__getitem__()
+            bx += gx
+            by += gy
+            bz += gz
+            sleep(0.01)
+        return [bx / float(N), by / float(N), bz / float(N)] 
+
+    def get_acc_angles(self, N):
+        [_, ax, ay, az, _, _, _] = self.__getitem__(N)
+        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
+        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
+        return [phi, theta]
