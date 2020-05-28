@@ -155,3 +155,29 @@ def preprocess_arguments(argsets, converters):
         raise ValueError(s)
 
     return result
+
+import matplotlib.pyplot as plt
+import io
+import PIL
+from PIL import Image
+from torchvision.transforms import ToTensor
+from random import randint
+
+def plot_tensorboard(writer,Datas, Lines, Labels,name="Image"):
+    rnd = randint(0,10000)
+    if name == "Image":
+        name = name + str(rnd)
+    plt.figure(rnd)
+        ## code to plot the image in tensorboard
+    plt.title(name)
+    times = [i for i in range(len(Datas[0]))]
+    for data,line,label in zip(Datas, Lines, Labels):
+        plt.plot(times, data, line,label=label)
+        plt.legend(loc="right")
+    plt.show()
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    image = PIL.Image.open(buf)
+    image = ToTensor()(image)
+    writer.add_image(name, image, 0)

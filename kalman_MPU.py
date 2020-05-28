@@ -7,11 +7,18 @@ from datasets import DatasetMPU9250
 import numpy as np
 from time import sleep, time
 from math import sin, cos, tan, pi
+from torch.utils.tensorboard import SummaryWriter
+from pathlib import Path 
+import matplotlib.pyplot as plt
+import io
+from utils import plot_tensorboard
 
 imu = DatasetMPU9250()
 
 sleep_time = 0.01
-
+exper_path = "./runs/KF_MPU/"
+Path(exper_path).mkdir(parents=True, exist_ok=True)
+writer = SummaryWriter(exper_path)
 # Initialise matrices and variables
 C = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
 P = np.eye(4)
@@ -31,7 +38,7 @@ phi_offset = 0.0
 theta_offset = 0.0
 
 for i in range(N):
-    [phi_acc, theta_acc] = imu.get_acc_angles(N)
+    [phi_acc, theta_acc] = imu.get_acc_angles(i)
     phi_offset += phi_acc
     theta_offset += theta_acc
     sleep(sleep_time)
@@ -54,12 +61,12 @@ for i in range(N):
     start_time = time()
 
     # Get accelerometer measurements and remove offsets
-    [phi_acc, theta_acc] = imu.get_acc_angles(N)
+    [phi_acc, theta_acc] = imu.get_acc_angles(i)
     phi_acc -= phi_offset
     theta_acc -= theta_offset
     
     # Gey gyro measurements and calculate Euler angle derivatives
-    [_, _, _, _, p, q, r] = imu.__getitem__(N)
+    [_, _, _, _, p, q, r] = imu.__getitem__(i)
     phi_dot = p + sin(phi_hat) * tan(theta_hat) * q + cos(phi_hat) * tan(theta_hat) * r
     theta_dot = cos(phi_hat) * q - sin(phi_hat) * r
 
@@ -88,7 +95,15 @@ for i in range(N):
     theta_hat = state_estimate[2]
     phi_est.append(phi_hat)
     theta_est.append(theta_hat)
-    # Display results
-    print("Phi: " + str([phi_hat * 180.0 / pi, 1]) + " Theta: " + str([theta_hat * 180.0 / pi, 1]))
 
-    sleep(sleep_time)
+    # Display results
+    print("Phi: " + str(np.round(phi_hat * 180.0 / pi, 1)) + " Theta: " + str(np.round(theta_hat * 180.0 / pi, 1)))
+    writer.add_scalar('kf_phi_degrees', np.round(phi_hat * 180.0 / pi, 1), i)
+    writer.add_scalar('kf_theta_degrees', np.round(theta_hat * 180.0 / pi, 1), i)
+
+times_list = [i for i in range(0, N)]
+plot_tensorboard(writer,[theta_est],['b'],["kf_theta"])
+plot_tensorboard(writer,[phi_est],['b'],["kf_phi"])
+
+
+writer.close()
