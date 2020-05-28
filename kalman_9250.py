@@ -55,33 +55,18 @@ theta_orient = []
 
 # Calculate accelerometer offsets
 N = 1000
-phi_offset = 0.0
-theta_offset = 0.0
-
-for i in range(N):
-    [phi_acc, theta_acc] = imu.get_acc_angles(i)
-    phi_offset += phi_acc
-    theta_offset += theta_acc
-
-phi_offset = float(phi_offset) / float(N)
-theta_offset = float(theta_offset) / float(N)
-
-print("Accelerometer offsets: " + str(phi_offset) + "," + str(theta_offset))
-
 
 print("Running...")
 for i in range(N):
     # Get accelerometer measurements and remove offsets
     [phi_acc, theta_acc] = imu.get_acc_angles(i)
-    # phi_acc -= phi_offset
-    # theta_acc -= theta_offset
 
     # Gey gyro measurements and calculate Euler angle derivatives
     [p, q, r, _, _, _, _, _, _] = imu.__getitem__(i)
     #import pdb; pdb.set_trace()
-    p = p - .349
-    q = q - .349
-    r = r - .349
+    p = p #- .349
+    q = q #- .349
+    r = r #- .349
     phi_dot = p + sin(phi_hat) * tan(theta_hat) * q + cos(phi_hat) * tan(theta_hat) * r
     theta_dot = cos(phi_hat) * q - sin(phi_hat) * r
 
