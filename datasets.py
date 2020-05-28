@@ -210,9 +210,9 @@ class Dataset9250(Dataset):
     def get_orient(self, i):   # METODO
 
         # train set [m/S^2] and [rad/s]
-        roll = float(self.imu_mat[i, 0])
+        roll = float(self.imu_mat[i, 2])
         pitch = float(self.imu_mat[i, 1])
-        yaw = float(self.imu_mat[i, 2])
+        yaw = float(self.imu_mat[i, 0])
         return roll, pitch, yaw
 
     def get_gyro_bias(self, N=100):
