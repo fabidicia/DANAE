@@ -5,7 +5,7 @@
 
 from datasets import Dataset9250
 import numpy as np
-from time import sleep, time
+from time import time
 from math import sin, cos, tan, pi
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path 
@@ -19,7 +19,6 @@ warnings.filterwarnings('ignore',category=FutureWarning)
 
 imu = Dataset9250()
 
-sleep_time = 0.01
 seed = randint(0,1000)
 print("experiment seed: "+str(seed))
 exper_path = "./runs/KF_9250_"+str(seed)+"/"
@@ -28,7 +27,7 @@ writer = SummaryWriter(exper_path)
 
 # Initialise matrices and variables
     # Kalman filter
-dt = 0.1
+dt = 0.01
 A = np.array([[1, -dt, 0, 0],
               [0, 1, 0, 0],
               [0, 0, 1, -dt],
@@ -63,13 +62,11 @@ for i in range(N):
     [phi_acc, theta_acc] = imu.get_acc_angles(i)
     phi_offset += phi_acc
     theta_offset += theta_acc
-    sleep(sleep_time)
 
 phi_offset = float(phi_offset) / float(N)
 theta_offset = float(theta_offset) / float(N)
 
 print("Accelerometer offsets: " + str(phi_offset) + "," + str(theta_offset))
-sleep(2)
 
 
 print("Running...")
@@ -100,8 +97,8 @@ for i in range(N):
 
     phi_hat = state_estimate[0]
     theta_hat = state_estimate[2]
-    phi_est.append(phi_hat*57)
-    theta_est.append(theta_hat*57)
+    phi_est.append(phi_hat)
+    theta_est.append(theta_hat)
 
     roll, pitch, _ = imu.get_orient(i)
     phi_orient.append(roll)
@@ -116,11 +113,15 @@ for i in range(N):
     # writer.add_scalar('Theta Angle_Degrees', {'kf_theta': np.round(theta_hat * 180.0 / pi, 1), 
     #                                          'orient_theta': np.round(pitch * 180.0 / pi, 1)}, i)
 
-    writer.add_scalar('kf_phi_degrees', np.round(phi_hat * 180.0 / pi, 1), i+1)
-    writer.add_scalar('kf_theta_degrees', np.round(theta_hat * 180.0 / pi, 1), i+1)
-    writer.add_scalar('orient_phi_degrees', np.round(roll * 180.0 / pi, 1), i+1)
-    writer.add_scalar('orient_theta_degrees', np.round(pitch * 180.0 / pi, 1), i+1)
+#    writer.add_scalar('kf_phi_degrees', np.round(phi_hat * 180.0 / pi, 1), i+1)
+#    writer.add_scalar('kf_theta_degrees', np.round(theta_hat * 180.0 / pi, 1), i+1)
+#    writer.add_scalar('orient_phi_degrees', np.round(roll * 180.0 / pi, 1), i+1)
+#    writer.add_scalar('orient_theta_degrees', np.round(pitch * 180.0 / pi, 1), i+1)
 
+    writer.add_scalar('kf_phi_degrees', phi_hat, i+1)
+    writer.add_scalar('kf_theta_degrees', theta_hat, i+1)
+    writer.add_scalar('orient_phi_degrees', roll, i+1)
+    writer.add_scalar('orient_theta_degrees', pitch, i+1)
 
 times_list = [i for i in range(0, N)]
 plot_tensorboard(writer, [phi_est, phi_orient], ['b', 'r'], ['phi_kf', 'phi_orient'])
