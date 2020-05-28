@@ -13,12 +13,16 @@ import matplotlib.pyplot as plt
 import io
 from utils import plot_tensorboard
 import warnings
+from random import randint
+
 warnings.filterwarnings('ignore',category=FutureWarning)
 
 imu = Dataset9250()
 
 sleep_time = 0.01
-exper_path = "./runs/KF_9250/"
+seed = randint(0,1000)
+print("experiment seed: "+str(seed))
+exper_path = "./runs/KF_9250_"+str(seed)+"/"
 Path(exper_path).mkdir(parents=True, exist_ok=True)
 writer = SummaryWriter(exper_path)
 
@@ -116,11 +120,10 @@ for i in range(N):
     #writer.add_scalar('Theta Angle_Degrees', {'kf_theta': np.round(theta_hat * 180.0 / pi, 1), 
     #                                          'orient_theta': np.round(pitch * 180.0 / pi, 1)}, i)
     
-    writer.add_scalar('kf_phi_degrees', np.round(phi_hat * 180.0 / pi, 1), i)
-    writer.add_scalar('kf_theta_degrees', np.round(theta_hat * 180.0 / pi, 1), i)
-    writer.add_scalar('orient_phi_degrees', np.round(roll * 180.0 / pi, 1), i)
-    writer.add_scalar('orient_theta_degrees', np.round(pitch * 180.0 / pi, 1), i)
-
+    writer.add_scalar('kf_phi_degrees', np.round(phi_hat * 180.0 / pi, 1), i+1)
+    writer.add_scalar('kf_theta_degrees', np.round(theta_hat * 180.0 / pi, 1), i+1)
+    writer.add_scalar('orient_phi_degrees', np.round(roll * 180.0 / pi, 1), i+1)
+    writer.add_scalar('orient_theta_degrees', np.round(pitch * 180.0 / pi, 1), i+1)
 times_list = [i for i in range(0, N)]
 plot_tensorboard(writer, [theta_est, theta_orient], ['b', 'r'], ['theta_kf', 'theta_orient'])
 #plot_tensorboard(writer, [theta_orient], ['r'], ['orient_theta'])
