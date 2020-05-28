@@ -27,9 +27,9 @@ writer = SummaryWriter(exper_path)
 
 # Initialise matrices and variables
     # Kalman filter
-dt = 0.01
+dt = 0.1
 A = np.array([[1, -dt, 0, 0],
-              [0, 1, 0, 0],
+	      [0, 1, 0, 0],
               [0, 0, 1, -dt],
               [0, 0, 0, 1]])
 B = np.array([[dt, 0],
@@ -39,8 +39,8 @@ B = np.array([[dt, 0],
 
 C = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
 P = np.eye(4)
-Q = np.eye(4) * 200
-R = np.eye(2) * .1
+Q = np.eye(4) 
+R = np.eye(2) 
 
 state_estimate = np.array([[0], [0], [0], [0]]) #roll and pitch
 
@@ -78,6 +78,7 @@ for i in range(N):
 
     # Gey gyro measurements and calculate Euler angle derivatives
     [p, q, r, _, _, _, _, _, _] = imu.__getitem__(i)
+    #import pdb; pdb.set_trace()
     p = p - .349
     q = q - .349
     r = r - .349
@@ -118,10 +119,21 @@ for i in range(N):
 #    writer.add_scalar('orient_phi_degrees', np.round(roll * 180.0 / pi, 1), i+1)
 #    writer.add_scalar('orient_theta_degrees', np.round(pitch * 180.0 / pi, 1), i+1)
 
-    writer.add_scalar('kf_phi_degrees', phi_hat, i+1)
-    writer.add_scalar('kf_theta_degrees', theta_hat, i+1)
-    writer.add_scalar('orient_phi_degrees', roll, i+1)
-    writer.add_scalar('orient_theta_degrees', pitch, i+1)
+    writer.add_scalar('kf_phi', phi_hat, i+1)
+    writer.add_scalar('kf_theta', theta_hat, i+1)
+    writer.add_scalar('orient_phi', roll, i+1)
+    writer.add_scalar('orient_theta', pitch, i+1)
+np_kf_phi = np.asarray(phi_hat)
+np_roll = np.asarray(roll)
+mean_rel_error = np.divide(np_roll - np_kf_phi,np_roll)
+mean_rel_error = np.abs(mean_rel_error.mean())
+print("mean_rel_error phi: %.5f" %  mean_rel_error)
+
+np_kf_theta = np.asarray(theta_hat)
+np_pitch = np.asarray(pitch)
+mean_rel_error = np.divide(np_pitch - np_kf_theta,np_pitch)
+mean_rel_error = np.abs(mean_rel_error.mean())
+print("mean_rel_error theta: %.5f" %  mean_rel_error)
 
 times_list = [i for i in range(0, N)]
 plot_tensorboard(writer, [phi_est, phi_orient], ['b', 'r'], ['phi_kf', 'phi_orient'])

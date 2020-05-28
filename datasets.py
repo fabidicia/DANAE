@@ -2,7 +2,7 @@ import numpy as np
 from torch.utils.data import Dataset
 import torch
 import csv
-from math import sin, cos, atan
+from math import sin, cos, atan, pi
 import scipy.io
 import math
 from time import sleep
@@ -210,9 +210,9 @@ class Dataset9250(Dataset):
     def get_orient(self, i):   # METODO
 
         # train set [m/S^2] and [rad/s]
-        roll = float(self.imu_mat[i, 2])
-        pitch = float(self.imu_mat[i, 1])
-        yaw = float(self.imu_mat[i, 0])
+        roll = float(self.imu_mat[i, 2]) * pi / 180.0
+        pitch = float(self.imu_mat[i, 1]) * pi / 180.0
+        yaw = float(self.imu_mat[i, 0]) * pi / 180.0
         return roll, pitch, yaw
 
     def get_gyro_bias(self, N=100):
