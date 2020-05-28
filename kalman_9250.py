@@ -27,10 +27,21 @@ Path(exper_path).mkdir(parents=True, exist_ok=True)
 writer = SummaryWriter(exper_path)
 
 # Initialise matrices and variables
+    # Kalman filter
+dt = 0.1
+A = np.array([[1, -dt, 0, 0],
+              [0, 1, 0, 0],
+              [0, 0, 1, -dt],
+              [0, 0, 0, 1]])
+B = np.array([[dt, 0],
+              [0, 0],
+              [0, dt],
+              [0, 0]])
+
 C = np.array([[1, 0, 0, 0], [0, 0, 1, 0]])
 P = np.eye(4)
-Q = np.eye(4)
-R = np.eye(2)
+Q = np.eye(4)* .0008
+R = np.array([[0.1,0],[0,0.1]])
 
 state_estimate = np.array([[0], [0], [0], [0]]) #roll and pitch
 
@@ -60,16 +71,10 @@ theta_offset = float(theta_offset) / float(N)
 print("Accelerometer offsets: " + str(phi_offset) + "," + str(theta_offset))
 sleep(2)
 
-# Measured sampling time
-dt = 0.0
-start_time = time()  # time derived from IMU or not?
 
 print("Running...")
 for i in range(N):
 
-    # Sampling time
-    dt = time() - start_time
-    start_time = time()
 
     # Get accelerometer measurements and remove offsets
     [phi_acc, theta_acc] = imu.get_acc_angles(i)
@@ -80,16 +85,6 @@ for i in range(N):
     [p, q, r, _, _, _, _, _, _,] = imu.__getitem__(i)
     phi_dot = p + sin(phi_hat) * tan(theta_hat) * q + cos(phi_hat) * tan(theta_hat) * r
     theta_dot = cos(phi_hat) * q - sin(phi_hat) * r
-
-    # Kalman filter
-    A = np.array([[1, -dt, 0, 0],
-                  [0, 1, 0, 0],
-                  [0, 0, 1, -dt],
-                  [0, 0, 0, 1]])
-    B = np.array([[dt, 0],
-                 [0, 0],
-                 [0, dt],
-                 [0, 0]])
 
     gyro_input = np.array([[phi_dot], [theta_dot]])
     state_estimate = A.dot(state_estimate) + B.dot(gyro_input)
