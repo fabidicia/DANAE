@@ -47,11 +47,11 @@ state_estimate = np.array([[0], [0], [0], [0]]) #roll and pitch
 phi_hat = 0.0
 theta_hat = 0.0
 
-phi_est = []
-theta_est = []
+phi_kf = []
+theta_kf = []
 
-phi_orient = []
-theta_orient = []
+phi_gt = []
+theta_gt = []
 
 # Calculate accelerometer offsets
 N = 1000
@@ -83,12 +83,12 @@ for i in range(N):
 
     phi_hat = state_estimate[0]
     theta_hat = state_estimate[2]
-    phi_est.append(phi_hat)
-    theta_est.append(theta_hat)
+    phi_kf.append(phi_hat)
+    theta_kf.append(theta_hat)
 
     roll, pitch, _ = imu.get_orient(i)
-    phi_orient.append(roll)
-    theta_orient.append(pitch)
+    phi_gt.append(roll)
+    theta_gt.append(pitch)
 
     # Display results
     # print("Phi: " + str(np.round(phi_hat * 180.0 / pi, 1)) + " Theta: " + str(np.round(theta_hat * 180.0 / pi, 1)))
@@ -108,21 +108,29 @@ for i in range(N):
     writer.add_scalar('kf_theta', theta_hat, i+1)
     writer.add_scalar('orient_phi', roll, i+1)
     writer.add_scalar('orient_theta', pitch, i+1)
-np_kf_phi = np.asarray(phi_hat)
-np_roll = np.asarray(roll)
-mean_rel_error = np.divide(np_roll - np_kf_phi,np_roll)
-mean_rel_error = np.abs(mean_rel_error.mean())
-print("mean_rel_error phi: %.5f" %  mean_rel_error)
+np_phi_kf = np.asarray(phi_kf)
+np_phi_gt= np.asarray(phi_gt)
+np_theta_kf = np.asarray(theta_kf)
+np_theta_gt = np.asarray(theta_gt)
+np.save("phi_gt.npy",np_phi_gt)
+np.save("phi_kf.npy",np_phi_kf)
+import pdb; pdb.set_trace()
 
-np_kf_theta = np.asarray(theta_hat)
-np_pitch = np.asarray(pitch)
-mean_rel_error = np.divide(np_pitch - np_kf_theta,np_pitch)
-mean_rel_error = np.abs(mean_rel_error.mean())
-print("mean_rel_error theta: %.5f" %  mean_rel_error)
+rel_errors = [abs(i-j)/i*100 for i,j in zip(phi_gt,phi_kf) if abs(i)!=0 ]
+rel_errors = np.array([num for num in rel_errors if num == num]) #sporco barbatrucco per scoprire se un numero è NaN!!
+print("TRUE_rel_error phi: %.5f" %  rel_errors.mean())
+mse = ((np_phi_gt - np_phi_kf)**2).mean(axis=None)
+print("mse phi: " + str(mse))
+
+rel_errors = [abs(i-j)/i*100 for i,j in zip(theta_gt,theta_kf) if abs(i)!=0 ]
+rel_errors = np.array([num for num in rel_errors if num == num])
+print("TRUE_rel_error theta: %.5f" %  rel_errors.mean())
+mse = ((np_theta_gt - np_theta_kf)**2).mean(axis=None)
+print("mse theta: " + str(mse))
 
 times_list = [i for i in range(0, N)]
-plot_tensorboard(writer, [phi_est, phi_orient], ['b', 'r'], ['phi_kf', 'phi_orient'])
-# plot_tensorboard(writer, [phi_orient], ['r'], ['orient_phi'])
-plot_tensorboard(writer, [theta_est, theta_orient], ['b', 'r'], ['theta_kf', 'theta_orient'])
-# plot_tensorboard(writer, [theta_orient], ['r'], ['orient_theta'])
+plot_tensorboard(writer, [phi_kf, phi_gt], ['b', 'r'], ['phi_kf', 'phi_gt'])
+# plot_tensorboard(writer, [phi_gt], ['r'], ['orient_phi'])
+plot_tensorboard(writer, [theta_kf, theta_gt], ['b', 'r'], ['theta_kf', 'theta_gt'])
+# plot_tensorboard(writer, [theta_gt], ['r'], ['orient_theta'])
 writer.close()

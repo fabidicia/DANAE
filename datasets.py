@@ -231,3 +231,20 @@ class Dataset9250(Dataset):
         phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
         theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
         return [phi, theta]
+
+class DatasetPhi_gt_kf(Dataset):
+    def __init__(self, path = "./data/9250/",length=10):
+        self.path_gt = path + "phi_gt.npy"
+        self.path_kf = path + "phi_kf.npy"
+        self.phi_gt = np.load(self.path_gt)
+        self.phi_kf = np.load(self.path_kf)
+        self.len = self.phi_gt.shape[0]
+        self.length = length
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, i,length=10):   # METODO
+
+        phi_gt = self.phi_gt[i:i+self.length]
+        phi_kf = self.phi_kf[i:i+self.length]
+        return torch.from_numpy(phi_kf), torch.from_numpy(phi_gt)
