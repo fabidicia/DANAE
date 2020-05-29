@@ -7,8 +7,9 @@ import scipy.io
 import math
 from time import sleep
 
-class IMUdata(Dataset):
-    def __init__(self, path):
+
+class OXFDataset(Dataset):
+    def __init__(self, path="./data/Oxio_Dataset/handheld/data3/syn/"):
         self.path = path
         with open(self.path+"imu2.csv") as imudata:
             imu_iter = csv.reader(imudata)
@@ -23,47 +24,211 @@ class IMUdata(Dataset):
     def __len__(self):
         return self.len
 
-    def __getitem__(self, n):   # METODO
+    def gettime(self, i):
+        time = self.imu_mat[i, 0]
+        return time
 
-        # train set
-        roll = self.imu_mat[n, 1]
-        pitch = self.imu_mat[n, 2]
-        yaw = self.imu_mat[n, 3]
+    def __getitem__(self, i):
+        # gyro noise 4mdps/sqrt(Hz)
+        Gx = float(self.imu_mat[i, 4])
+        Gy = float(self.imu_mat[i, 5])
+        Gz = float(self.imu_mat[i, 6])
+        # acc noise  100µg/sqrt(Hz)
+        gravx = float(self.imu_mat[i, 7])
+        gravy = float(self.imu_mat[i, 8])
+        gravz = float(self.imu_mat[i, 9])
+        accx = float(self.imu_mat[i, 10])
+        accy = float(self.imu_mat[i, 11])
+        accz = float(self.imu_mat[i, 11])
+        Ax = accx + gravx
+        Ay = accy + gravy
+        Az = accz + gravz
+        # mag output resolution  0.3µT /LSB
+        Mx = float(self.imu_mat[i, 13])
+        My = float(self.imu_mat[i, 14])
+        Mz = float(self.imu_mat[i, 15])
+        return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
 
-        gyr_x = self.imu_mat[n, 4]
-        gyr_y = self.imu_mat[n, 5]
-        gyr_z = self.imu_mat[n, 6]
+    def get_acc_angles(self, i):
+        [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
+        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
+        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
+        return [phi, theta]
 
-        acc_x = self.imu_mat[n, 10] # in questo modo la matrice da leggere con getdata è diventato un attributo
-        acc_y = self.imu_mat[n, 11]
-        acc_z = self.imu_mat[n, 12]
+    def get_orient(self, i):   # METODO
+        roll = float(self.imu_mat[i, 2]) * pi / 180.0
+        pitch = float(self.imu_mat[i, 1]) * pi / 180.0
+        yaw = float(self.imu_mat[i, 0]) * pi / 180.0
+        return roll, pitch, yaw
 
-        mag_x = self.imu_mat[n, 13]
-        mag_y = self.imu_mat[n, 14]
-        mag_z = self.imu_mat[n, 15]
+    def quaternion_to_euler(self, x, y, z, w):
+        t0 = +2.0 * (w * x + y * z)
+        t1 = +1.0 - 2.0 * (x * x + y * y)
+        roll = math.atan2(t0, t1)
+        t2 = +2.0 * (w * y - z * x)
+        t2 = +1.0 if t2 > +1.0 else t2
+        t2 = -1.0 if t2 < -1.0 else t2
+        pitch = math.asin(t2)
+        t3 = +2.0 * (w * z + x * y)
+        t4 = +1.0 - 2.0 * (y * y + z * z)
+        yaw = math.atan2(t3, t4)
+        return [roll, pitch, yaw]
 
-        time = self.imu_mat[n, 0]
-
-        # ground thruth
+    def get_pl_groundt(self, n):   # METODO
         transl_x = self.gt_mat[n, 2]
         transl_y = self.gt_mat[n, 3]
         transl_z = self.gt_mat[n, 4]
+        return transl_x, transl_y, transl_z
 
-        # pose in quaternion to euler
-        rot_x = self.gt_mat[n, 5]
-        rot_y = self.gt_mat[n, 6]
-        rot_z = self.gt_mat[n, 7]
-        rot_w = self.gt_mat[n, 8]
+    def get_ang_groundt(self, n):   # METODO  
+        # pose in quaternion
+        x = self.gt_mat[n, 5]
+        y = self.gt_mat[n, 6]
+        z = self.gt_mat[n, 7]
+        w = self.gt_mat[n, 8]
+        roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w)
+        return roll, pitch, yaw
 
-        gyr = gyr_x.astype(np.float), gyr_y.astype(np.float), gyr_z.astype(np.float)
-        acc_v = acc_x.astype(np.float), acc_y.astype(np.float), acc_z.astype(np.float) # è una tupla! non ha parentesi infatti. oppure potrebbe averle tonde
-        mag = mag_x.astype(np.float), mag_y.astype(np.float), mag_z.astype(np.float)
-        orient = roll.astype(np.float), pitch.astype(np.float), yaw.astype(np.float)
-        gt_transl = transl_x.astype(np.float), transl_y.astype(np.float), transl_z.astype(np.float)
-        #gt_rot = phi.astype(np.float), theta.astype(np.float), psi.astype(np.float)
-        gt_rot = rot_x.astype(np.float), rot_y.astype(np.float), rot_z.astype(np.float), rot_w.astype(np.float)
 
-        return time, orient, acc_v, gyr, mag, gt_rot, gt_transl # decreta chiusura del metodo, deve essere l'ultima riga
+class datasetMatlabIMU(Dataset):
+
+    def __init__(self, path="./data/Dati_iphone/"):
+        self.path = path
+        with open(self.path+"PhoneMatrix.csv") as imudata:
+            imu_iter = csv.reader(imudata)
+            imulist = [line for line in imu_iter]
+            self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
+        self.len = self.imu_mat.shape[0]
+
+    def __len__(self):
+        return self.len
+
+    def gettime(self, i):
+        time = self.imu_mat[i, 0]
+        return time
+
+    def __getitem__(self, i):   # METODO
+        Gx = float(self.imu_mat[i, 3])
+        Gy = float(self.imu_mat[i, 4])
+        Gz = float(self.imu_mat[i, 5])
+        Ax = float(self.imu_mat[i, 6])
+        Ay = float(self.imu_mat[i, 7])
+        Az = float(self.imu_mat[i, 8])
+        Mx = float(self.imu_mat[i, 9])
+        My = float(self.imu_mat[i, 10])
+        Mz = float(self.imu_mat[i, 11])
+        return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
+
+    def get_orient(self, i):   # METODO
+        roll = float(self.imu_mat[i, 2]) * pi / 180.0
+        pitch = float(self.imu_mat[i, 1]) * pi / 180.0
+        yaw = float(self.imu_mat[i, 0]) * pi / 180.0
+        return roll, pitch, yaw
+
+    def get_acc_angles(self, i):
+        [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
+        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
+        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
+        return [phi, theta]
+
+
+class DatasetPhils(Dataset):
+    def __init__(self, path="./data/Attitude-Estimation/"):
+        self.path = path
+        with open(self.path+"imu_data.csv") as imudata:
+            imu_iter = csv.reader(imudata)
+            imulist = [line for line in imu_iter]
+            imulist.pop(0)  # rimuovo il primo elemento della lista visto che non contiene numeri!
+            self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
+        self.len = self.imu_mat.shape[0]
+
+    def __len__(self):
+        return self.len
+
+    def gettime(self, n):
+        time = self.imu_mat[n, 0]
+        return time
+
+    def __getitem__(self, i):   # METODO
+        Ax = float(self.imu_mat[i, 1]) / 16384.0
+        Ay = float(self.imu_mat[i, 2]) / 16384.0
+        Az = float(self.imu_mat[i, 3]) / 16384.0
+        Gx = float(self.imu_mat[i, 4]) * math.pi / (180.0 * 131.0)
+        Gy = float(self.imu_mat[i, 5]) * math.pi / (180.0 * 131.0)
+        Gz = float(self.imu_mat[i, 6]) * math.pi / (180.0 * 131.0)
+        Mx = 0
+        My = 0
+        Mz = 0
+        return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
+
+    def get_gyro_bias(self, N=100):
+        bx = 0.0
+        by = 0.0
+        bz = 0.0
+        for i in range(N):
+            [_, _, _, _, gx, gy, gz] = self.__getitem__(i)
+            bx += gx
+            by += gy
+            bz += gz
+        return [bx / float(N), by / float(N), bz / float(N)] 
+
+    def get_acc_angles(self, i):
+        [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
+        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
+        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
+        return [phi, theta]
+
+
+class Dataset9250(Dataset):
+    def __init__(self, path="./data/9250/"):
+        self.path = path
+        with open(self.path+"9250Data.csv") as imudata:
+            imu_iter = csv.reader(imudata)
+            imulist = [line for line in imu_iter]
+            self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
+        self.len = self.imu_mat.shape[0]
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, i):   # METODO
+        Gx = float(self.imu_mat[i, 3])
+        Gy = float(self.imu_mat[i, 4])
+        Gz = float(self.imu_mat[i, 5])
+        Ax = float(self.imu_mat[i, 6])
+        Ay = float(self.imu_mat[i, 7])
+        Az = float(self.imu_mat[i, 8])
+        Mx = float(self.imu_mat[i, 9])
+        My = float(self.imu_mat[i, 10])
+        Mz = float(self.imu_mat[i, 11])
+        return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
+
+    def get_orient(self, i):   # METODO
+
+        # train set [m/S^2] and [rad/s]
+        roll = float(self.imu_mat[i, 2]) * pi / 180.0
+        pitch = float(self.imu_mat[i, 1]) * pi / 180.0
+        yaw = float(self.imu_mat[i, 0]) * pi / 180.0
+        return roll, pitch, yaw
+
+    def get_gyro_bias(self, N=100):
+        bx = 0.0
+        by = 0.0
+        bz = 0.0
+        for i in range(N):
+            [gx, gy, gz, _, _, _, _, _, _] = self.__getitem__(i)
+            bx += gx
+            by += gy
+            bz += gz
+        return [bx / float(N), by / float(N), bz / float(N)]
+
+    def get_acc_angles(self, i):
+        [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
+        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
+        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
+        return [phi, theta]
+
+
 
 class MotherOfIMUdata(Dataset):
     def __init__(self,path,seq_len=10):
@@ -83,7 +248,6 @@ class MotherOfIMUdata(Dataset):
             gt_rot = [float(e) for e in gt_rot]
             gt_transl = [float(e) for e in gt_transl]
             train_sample.append(torch.tensor([acc_v[0],acc_v[1],acc_v[2],gyr[0],gyr[1],gyr[2],mag[0],mag[1],mag[2]]))
-            
             gt_sample.append(torch.tensor([gt_rot[0],gt_rot[1],gt_rot[2],gt_rot[3],gt_transl[0],gt_transl[1],gt_transl[2]]))
         train_sample = torch.stack(train_sample) #size: 10x3
         gt_sample = torch.stack(gt_sample) #size: 10x2
@@ -109,128 +273,6 @@ class SimpleDataset(Dataset):
         return input_list, gt_list
 
 
-class datasetMatlabIMU(Dataset):
-
-    def __init__(self, path="/mnt/c/Users/fabia/OneDrive/Desktop/Deep_Learning/dataMatrix.mat"):
-        self.path = path
-        with open(self.path) as imudata:
-            data = scipy.io.loadmat(path)
-        self.orient = data['orient']
-        self.gyr_s = data['gyr_s']
-        self.mag_s = data['mag_s']
-        self.acc_s = data['acc_s']
-        self.epoch_acc = data['epoch_acc']
-        self.len = self.orient.shape[0]
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, n):   # METODO
-        orient = tuple(elem for elem in self.orient[n])
-        gyr = tuple(elem for elem in self.gyr_s[n])
-        acc_v = tuple(elem for elem in self.acc_s[n])
-        mag = tuple(elem for elem in self.mag_s[n])
-
-        time = self.epoch_acc[n, 0] # BOOH non so cosa ci sta qua dentro!
-        gt_rot = None
-        gt_transl = None
-        return time, orient, acc_v, gyr, mag, gt_rot, gt_transl #decreta chiusura del metodo, deve essere l'ultima riga
-
-
-class DatasetMPU9250(Dataset):
-    def __init__(self, path = "./data/Attitude-Estimation/"):
-        self.path = path
-        with open(self.path+"imu_data.csv") as imudata:
-            imu_iter = csv.reader(imudata)
-            imulist = [line for line in imu_iter]
-            imulist.pop(0) # rimuovo il primo elemento della lista visto che non contiene numeri!
-            self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
-        self.len = self.imu_mat.shape[0]
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, i):   # METODO
-
-        # train set [m/S^2] and [rad/s]
-        time = self.imu_mat[i, 0]
-        Ax = float(self.imu_mat[i, 1]) / 16384.0
-        Ay = float(self.imu_mat[i, 2]) / 16384.0
-        Az = float(self.imu_mat[i, 3]) / 16384.0
-        Gx = float(self.imu_mat[i, 4]) * math.pi / (180.0 * 131.0)
-        Gy = float(self.imu_mat[i, 5]) * math.pi / (180.0 * 131.0)
-        Gz = float(self.imu_mat[i, 6]) * math.pi / (180.0 * 131.0)
-
-        return time, Ax, Ay, Az, Gx, Gy, Gz
-
-    def get_gyro_bias(self, N=100):
-        bx = 0.0
-        by = 0.0
-        bz = 0.0
-        for i in range(N):
-            [_, _, _, _, gx, gy, gz] = self.__getitem__(i)
-            bx += gx
-            by += gy
-            bz += gz
-        return [bx / float(N), by / float(N), bz / float(N)] 
-
-    def get_acc_angles(self, i):
-        [_, ax, ay, az, _, _, _] = self.__getitem__(i)
-        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
-        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
-        return [phi, theta]
-
-
-class Dataset9250(Dataset):
-    def __init__(self, path = "./data/9250/"):
-        self.path = path
-        with open(self.path+"9250Data.csv") as imudata:
-            imu_iter = csv.reader(imudata)
-            imulist = [line for line in imu_iter]
-            self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
-        self.len = self.imu_mat.shape[0]
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, i):   # METODO
-
-        # train set [m/S^2] and [rad/s]
-        Gx = float(self.imu_mat[i, 3])
-        Gy = float(self.imu_mat[i, 4])
-        Gz = float(self.imu_mat[i, 5])
-        Ax = float(self.imu_mat[i, 6])
-        Ay = float(self.imu_mat[i, 7])
-        Az = float(self.imu_mat[i, 8])
-        Mx = float(self.imu_mat[i, 9])
-        My = float(self.imu_mat[i, 10])
-        Mz = float(self.imu_mat[i, 11])
-        return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
-
-    def get_orient(self, i):   # METODO
-
-        # train set [m/S^2] and [rad/s]
-        roll = float(self.imu_mat[i, 2]) * pi / 180.0
-        pitch = float(self.imu_mat[i, 1]) * pi / 180.0
-        yaw = float(self.imu_mat[i, 0]) * pi / 180.0
-        return roll, pitch, yaw
-
-    def get_gyro_bias(self, N=100):
-        bx = 0.0
-        by = 0.0
-        bz = 0.0
-        for i in range(N):
-            [gx, gy, gz, _, _, _, _, _, _,] = self.__getitem__(i)
-            bx += gx
-            by += gy
-            bz += gz
-        return [bx / float(N), by / float(N), bz / float(N)] 
-
-    def get_acc_angles(self, i):
-        [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
-        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
-        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
-        return [phi, theta]
 
 class DatasetPhi_gt_kf(Dataset):
     def __init__(self, path = "./data/9250/",length=10):
@@ -238,7 +280,7 @@ class DatasetPhi_gt_kf(Dataset):
         self.path_kf = path + "phi_kf.npy"
         self.phi_gt = np.load(self.path_gt)
         self.phi_kf = np.load(self.path_kf)
-        self.len = self.phi_gt.shape[0]
+        self.len = self.phi_gt.shape[0]-length
         self.length = length
     def __len__(self):
         return self.len
@@ -247,4 +289,5 @@ class DatasetPhi_gt_kf(Dataset):
 
         phi_gt = self.phi_gt[i:i+self.length]
         phi_kf = self.phi_kf[i:i+self.length]
-        return torch.from_numpy(phi_kf), torch.from_numpy(phi_gt)
+        return torch.from_numpy(phi_kf).view(1,-1), torch.from_numpy(phi_gt).view(1,-1)
+

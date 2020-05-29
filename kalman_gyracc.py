@@ -3,8 +3,7 @@
 # Author: Philip Salmony [pms67@cam.ac.uk]
 # Riadaptation
 
-from datasets import Dataset9250
-from datasets2 import *
+from datasets import *
 import numpy as np
 from time import time
 from math import sin, cos, tan, pi
