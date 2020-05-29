@@ -112,9 +112,8 @@ np_phi_kf = np.asarray(phi_kf)
 np_phi_gt= np.asarray(phi_gt)
 np_theta_kf = np.asarray(theta_kf)
 np_theta_gt = np.asarray(theta_gt)
-np.save("phi_gt.npy",np_phi_gt)
-np.save("phi_kf.npy",np_phi_kf)
-import pdb; pdb.set_trace()
+#np.save("phi_gt.npy",np_phi_gt)
+#np.save("phi_kf.npy",np_phi_kf)
 
 rel_errors = [abs(i-j)/i*100 for i,j in zip(phi_gt,phi_kf) if abs(i)!=0 ]
 rel_errors = np.array([num for num in rel_errors if num == num]) #sporco barbatrucco per scoprire se un numero è NaN!!
