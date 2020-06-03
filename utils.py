@@ -12,7 +12,7 @@
 #   b. Redistributions in binary form must reproduce the above copyright
 #      notice, this list of conditions and the following disclaimer in the
 #      documentation and/or other materials provided with the distribution.
-#   c. Neither the name of the Scikit-learn Developers  nor the names of
+#   c. Neither the Name of the Scikit-learn Developers  nor the Names of
 #      its contributors may be used to endorse or promote products
 #      derived from this software without specific prior written
 #      permission.
@@ -105,9 +105,9 @@ class Bunch(dict):
 
 
 def get_params(obj):
-    '''Get names and values of all parameters in `obj`'s __init__'''
+    '''Get Names and values of all parameters in `obj`'s __init__'''
     try:
-        # get names of every variable in the argument
+        # get Names of every variable in the argument
         args = inspect.getargspec(obj.__init__)[0]
         args.pop(0)   # remove "self"
 
@@ -123,30 +123,30 @@ def preprocess_arguments(argsets, converters):
 
     Parameters
     ----------
-    argsets : [{argname: argval}]
+    argsets : [{argName: argval}]
         a list of argument sets, each with lower levels of priority
-    converters : {argname: function}
+    converters : {argName: function}
         conversion functions for each argument
 
     Returns
     -------
-    result : {argname: argval}
+    result : {argName: argval}
         processed arguments
     """
     result = {}
     for argset in argsets:
-        for (argname, argval) in argset.items():
+        for (argName, argval) in argset.items():
             # check that this argument is necessary
-            if not argname in converters:
-                raise ValueError("Unrecognized argument: {0}".format(argname))
+            if not argName in converters:
+                raise ValueError("Unrecognized argument: {0}".format(argName))
 
             # potentially use this argument
-            if argname not in result and argval is not None:
+            if argName not in result and argval is not None:
                 # convert to right type
-                argval = converters[argname](argval)
+                argval = converters[argName](argval)
 
                 # save
-                result[argname] = argval
+                result[argName] = argval
 
     # check that all arguments are covered
     if not len(converters.keys()) == len(result.keys()):
@@ -163,13 +163,13 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 from random import randint
 
-def plot_tensorboard(writer,Datas, Lines, Labels,name="Image"):
+def plot_tensorboard(writer,Datas, Lines, Labels,Name="Image"):
     rnd = randint(0,10000)
-    if name == "Image":
-        name = name + str(rnd)
+    if Name == "Image":
+        Name = Name + str(rnd)
     plt.figure(rnd)
         ## code to plot the image in tensorboard
-    plt.title(name)
+    plt.title(Name)
     times = [i for i in range(len(Datas[0]))]
     for data,line,label in zip(Datas, Lines, Labels):
         plt.plot(times, data, line,label=label)
@@ -180,4 +180,4 @@ def plot_tensorboard(writer,Datas, Lines, Labels,name="Image"):
     buf.seek(0)
     image = PIL.Image.open(buf)
     image = ToTensor()(image)
-    writer.add_image(name, image, 0)
+    writer.add_image(Name, image, 0)

@@ -6,18 +6,19 @@ from math import sin, cos, atan, pi
 import scipy.io
 import math
 from time import sleep
-
+import glob
 
 class OXFDataset(Dataset):
-    def __init__(self, path="./data/Oxio_Dataset/handheld/data3/syn/"):
+    def __init__(self, path="./data/Oxio_Dataset/handheld/data3/syn/imu3.csv"):
         self.path = path
-        with open(self.path+"imu2.csv") as imudata:
+        with open(self.path) as imudata:
             imu_iter = csv.reader(imudata)
             imulist = [line for line in imu_iter]
-            self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
-        with open(self.path+"vi2.csv") as gtdata:
+        with open(self.path.replace("imu","vi")) as gtdata:
             gt_iter = csv.reader(gtdata)
             gtlist = [line for line in gt_iter]
+
+            self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
             self.gt_mat = np.array(gtlist)  # ho convertito la lista di liste in una matrice
         self.len = self.imu_mat.shape[0]
 
@@ -56,10 +57,10 @@ class OXFDataset(Dataset):
         return [phi, theta]
 
     def get_orient(self, i):   # METODO
-        roll = float(self.imu_mat[i, 2]) * pi / 180.0
-        pitch = float(self.imu_mat[i, 1]) * pi / 180.0
-        yaw = float(self.imu_mat[i, 0]) * pi / 180.0
-        return roll, pitch, yaw
+        roll = float(self.imu_mat[i, 2]) #* pi / 180.0
+        pitch = float(self.imu_mat[i, 1]) # * pi / 180.0
+        yaw = float(self.imu_mat[i, 0]) #* pi / 180.0
+        return -roll, -pitch, yaw
 
     def quaternion_to_euler(self, x, y, z, w):
         t0 = +2.0 * (w * x + y * z)
@@ -120,9 +121,9 @@ class datasetMatlabIMU(Dataset):
         return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
 
     def get_orient(self, i):   # METODO
-        roll = float(self.imu_mat[i, 2]) * pi / 180.0
-        pitch = float(self.imu_mat[i, 1]) * pi / 180.0
-        yaw = float(self.imu_mat[i, 0]) * pi / 180.0
+        roll = float(self.imu_mat[i, 2]) #* pi / 180.0
+        pitch = float(self.imu_mat[i, 1]) #* pi / 180.0
+        yaw = float(self.imu_mat[i, 0]) #* pi / 180.0
         return roll, pitch, yaw
 
     def get_acc_angles(self, i):
@@ -275,19 +276,50 @@ class SimpleDataset(Dataset):
 
 
 class DatasetPhi_gt_kf(Dataset):
-    def __init__(self, path = "./data/9250/",length=10):
-        self.path_gt = path + "phi_gt.npy"
-        self.path_kf = path + "phi_kf.npy"
+    def __init__(self, path = "./data/Oxio_Dataset/",seq_length=10):
+        self.path_gt = path + "theta_gt.npy"
+        self.path_kf = path + "theta_kf.npy"
         self.phi_gt = np.load(self.path_gt)
         self.phi_kf = np.load(self.path_kf)
-        self.len = self.phi_gt.shape[0]-length
-        self.length = length
+        self.len = self.phi_gt.shape[0]-seq_length
+        self.seq_length = seq_length
     def __len__(self):
         return self.len
 
-    def __getitem__(self, i,length=10):   # METODO
+    def __getitem__(self, i,seq_length=10):   # METODO
 
-        phi_gt = self.phi_gt[i:i+self.length]
-        phi_kf = self.phi_kf[i:i+self.length]
+        phi_gt = self.phi_gt[i:i+self.seq_length]
+        phi_kf = self.phi_kf[i:i+self.seq_length]
         return torch.from_numpy(phi_kf).view(1,-1), torch.from_numpy(phi_gt).view(1,-1)
+
+class Dataset_pred_for_GAN(Dataset):
+    def __init__(self, path = "./data/Oxio_Dataset/",seq_length=10):
+        files_kf = glob.glob(path+"*kf*.npy")
+        files_gt = [file.replace("kf","gt") for file in files_kf]
+        self.gt_list = []
+        self.kf_list = []
+        for i in range(len(files_kf)):
+            self.gt_list.append( np.load(files_gt[i]).squeeze()) 
+            self.kf_list.append( np.load(files_kf[i]).squeeze()) #.squeeze per rimuovere unwanted extra dimensions
+        self.gt = np.concatenate(self.gt_list, axis=0)
+        self.kf = np.concatenate(self.kf_list, axis=0)
+        self.valid_indexes = []
+        acc = 0
+        for i in range(len(files_kf)):
+            mat_indexes = [j for j in range(self.kf_list[i].shape[0]-seq_length)]
+            mat_indexes = [elem + acc for elem in mat_indexes]
+            self.valid_indexes += mat_indexes #sommare le liste vuol dire fare un append
+            acc += self.kf_list[i].shape[0]
+ 
+        self.len = len(self.valid_indexes)
+        self.seq_length = seq_length
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, i):   # METODO
+        true_idx = self.valid_indexes[i] 
+        gt = self.gt[true_idx:true_idx+self.seq_length]
+        kf = self.kf[true_idx:true_idx+self.seq_length]
+        return torch.from_numpy(kf).view(1,-1), torch.from_numpy(gt).view(1,-1)
 

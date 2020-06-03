@@ -19,10 +19,12 @@ from random import randint
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--dataset', type=str, required=True)
+parser.add_argument('--path', type=str, required=True)
+
 args = parser.parse_args()
 
 if args.dataset == "oxford":
-    imu = OXFDataset()
+    imu = OXFDataset(path=args.path)
 elif args.dataset == "matlab":
     imu = datasetMatlabIMU()
 elif args.dataset == "phils":   # not usable since it doesnt have orientation
@@ -32,7 +34,7 @@ elif args.dataset == "novedue":
 
 seed = randint(0, 1000)
 print("experiment seed: "+str(seed))
-exper_path = "./runs/KF_9250_"+str(seed)+"/"
+exper_path = "./runs/KF_" + args.dataset + "_" +str(seed)+"/"
 Path(exper_path).mkdir(parents=True, exist_ok=True)
 writer = SummaryWriter(exper_path)
 
@@ -53,7 +55,7 @@ P = np.eye(4)
 Q = np.eye(4) 
 R = np.eye(2) 
 
-state_estimate = np.array([[0], [0], [0], [0]]) #roll and pitch
+state_estimate = np.array([[0], [0], [0], [0]]) #roll, roll bias, pitch, pitch bias
 
 phi_hat = 0.0
 theta_hat = 0.0
@@ -101,20 +103,6 @@ for i in range(N):
     phi_gt.append(roll)
     theta_gt.append(pitch)
 
-    # Display results
-    # print("Phi: " + str(np.round(phi_hat * 180.0 / pi, 1)) + " Theta: " + str(np.round(theta_hat * 180.0 / pi, 1)))
-    # print("Phi: " + str(np.round(roll * 180.0 / pi, 1)) + " Theta: " + str(np.round(pitch * 180.0 / pi, 1)))
-
-    # writer.add_scalar('Phi Angle_Degrees', {'kf_phi': np.round(phi_hat * 180.0 / pi, 1),
-    #                                        'orient_phi': np.round(pitch * 180.0 / pi, 1)}, i)
-    # writer.add_scalar('Theta Angle_Degrees', {'kf_theta': np.round(theta_hat * 180.0 / pi, 1), 
-    #                                          'orient_theta': np.round(pitch * 180.0 / pi, 1)}, i)
-
-#    writer.add_scalar('kf_phi_degrees', np.round(phi_hat * 180.0 / pi, 1), i+1)
-#    writer.add_scalar('kf_theta_degrees', np.round(theta_hat * 180.0 / pi, 1), i+1)
-#    writer.add_scalar('orient_phi_degrees', np.round(roll * 180.0 / pi, 1), i+1)
-#    writer.add_scalar('orient_theta_degrees', np.round(pitch * 180.0 / pi, 1), i+1)
-
     writer.add_scalar('kf_phi', phi_hat, i+1)
     writer.add_scalar('kf_theta', theta_hat, i+1)
     writer.add_scalar('orient_phi', roll, i+1)
@@ -124,9 +112,10 @@ np_phi_kf = np.asarray(phi_kf)
 np_phi_gt = np.asarray(phi_gt)
 np_theta_kf = np.asarray(theta_kf)
 np_theta_gt = np.asarray(theta_gt)
-# np.save("phi_gt.npy", np_phi_gt)
-# np.save("phi_kf.npy", np_phi_kf)
-# import pdb; pdb.set_trace()
+import pdb; pdb.set_trace()
+
+np.save("./preds/" + "theta_gt_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".npy", np_theta_gt)
+np.save("./preds/" + "theta_kf_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".npy", np_theta_kf)
 
 rel_errors = [abs(i-j)/i*100 for i,j in zip(phi_gt,phi_kf) if abs(i)!=0 ]
 rel_errors = np.array([num for num in rel_errors if num == num]) #sporco barbatrucco per scoprire se un numero è NaN!!
