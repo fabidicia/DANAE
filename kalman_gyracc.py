@@ -16,6 +16,7 @@ from utils import plot_tensorboard
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 from random import randint
+import pickle
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--dataset', type=str, required=True)
@@ -65,6 +66,13 @@ theta_kf = []
 
 phi_gt = []
 theta_gt = []
+phi_acc_list = []
+theta_acc_list = []
+p_list = []
+q_list = []
+r_list = []
+phi_dot_list = []
+theta_dot_list = []
 
 # Calculate accelerometer offsets
 N = 1000
@@ -102,20 +110,48 @@ for i in range(N):
     roll, pitch, _ = imu.get_orient(i)
     phi_gt.append(roll)
     theta_gt.append(pitch)
+    ### other list appends:
+    p_list.append(p)
+    q_list.append(q)
+    r_list.append(r)
+    phi_dot_list.append(phi_dot)
+    theta_dot_list.append(theta_dot)
+    phi_acc_list.append(phi_acc)
+    theta_acc_list.append(theta_acc)
 
     writer.add_scalar('kf_phi', phi_hat, i+1)
     writer.add_scalar('kf_theta', theta_hat, i+1)
     writer.add_scalar('orient_phi', roll, i+1)
     writer.add_scalar('orient_theta', pitch, i+1)
 
+
 np_phi_kf = np.asarray(phi_kf)
 np_phi_gt = np.asarray(phi_gt)
 np_theta_kf = np.asarray(theta_kf)
 np_theta_gt = np.asarray(theta_gt)
-import pdb; pdb.set_trace()
+np_p = np.asarray(p_list)
+np_q = np.asarray(q_list)
+np_r = np.asarray(r_list)
+np_phi_dot = np.asarray(phi_dot_list)
+np_theta_dot = np.asarray(theta_dot_list)
 
-np.save("./preds/" + "theta_gt_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".npy", np_theta_gt)
-np.save("./preds/" + "theta_kf_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".npy", np_theta_kf)
+dictionary = {
+"phi_kf"     : np.asarray(phi_kf),
+"phi_gt"     : np.asarray(phi_gt),
+"theta_kf"   : np.asarray(theta_kf),
+"theta_gt"   : np.asarray(theta_gt),
+"p"          : np.asarray(p_list),
+"q"          : np.asarray(q_list),
+"r"          : np.asarray(r_list),
+"phi_dot"    : np.asarray(phi_dot_list),
+"theta_dot"  : np.asarray(theta_dot_list),
+"phi_acc"    : np.asarray(phi_acc_list),
+"theta_acc"  : np.asarray(theta_acc_list)
+}
+
+#np.save("./preds/" + "theta_gt_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".npy", np_theta_gt)
+#np.save("./preds/" + "theta_kf_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".npy", np_theta_kf)
+with open("./preds/" + "dict_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".pkl", 'wb') as f: pickle.dump(dictionary, f)
 
 rel_errors = [abs(i-j)/i*100 for i,j in zip(phi_gt,phi_kf) if abs(i)!=0 ]
 rel_errors = np.array([num for num in rel_errors if num == num]) #sporco barbatrucco per scoprire se un numero è NaN!!

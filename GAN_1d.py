@@ -138,7 +138,7 @@ for epoch in range(100):
         # Second, G(A) = B
         loss_g_l1 = criterionL1(fake_b, real_b) * args.lamb
         
-        loss_g = loss_g_l1 + loss_g_gan
+        loss_g = loss_g_l1 #+ loss_g_gan
         
         loss_g.backward()
 

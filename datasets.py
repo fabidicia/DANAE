@@ -7,6 +7,7 @@ import scipy.io
 import math
 from time import sleep
 import glob
+import pickle
 
 class OXFDataset(Dataset):
     def __init__(self, path="./data/Oxio_Dataset/handheld/data3/syn/imu3.csv"):
@@ -291,21 +292,23 @@ class DatasetPhi_gt_kf(Dataset):
         phi_gt = self.phi_gt[i:i+self.seq_length]
         phi_kf = self.phi_kf[i:i+self.seq_length]
         return torch.from_numpy(phi_kf).view(1,-1), torch.from_numpy(phi_gt).view(1,-1)
-
+	
 class Dataset_pred_for_GAN(Dataset):
     def __init__(self, path = "./data/Oxio_Dataset/",seq_length=10):
-        files_kf = glob.glob(path+"*kf*.npy")
-        files_gt = [file.replace("kf","gt") for file in files_kf]
+        files = glob.glob(path+"*.pkl")
+        #files_gt = [file.replace("kf","gt") for file in files_kf]
         self.gt_list = []
         self.kf_list = []
-        for i in range(len(files_kf)):
-            self.gt_list.append( np.load(files_gt[i]).squeeze()) 
-            self.kf_list.append( np.load(files_kf[i]).squeeze()) #.squeeze per rimuovere unwanted extra dimensions
+        for i in range(len(files)):
+            with open(files[i], "rb") as f: dict = pickle.load(f) 
+
+            self.gt_list.append( dict["theta_gt"].squeeze()) ## I'M ASSUMING I WANNA WORK ONLY WITH THETA 
+            self.kf_list.append( dict["theta_kf"].squeeze()) #.squeeze per rimuovere unwanted extra dimensions
         self.gt = np.concatenate(self.gt_list, axis=0)
         self.kf = np.concatenate(self.kf_list, axis=0)
         self.valid_indexes = []
         acc = 0
-        for i in range(len(files_kf)):
+        for i in range(len(files)):
             mat_indexes = [j for j in range(self.kf_list[i].shape[0]-seq_length)]
             mat_indexes = [elem + acc for elem in mat_indexes]
             self.valid_indexes += mat_indexes #sommare le liste vuol dire fare un append
