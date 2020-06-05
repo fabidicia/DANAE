@@ -13,6 +13,7 @@ import torchvision.utils as vutils
 from datasets import Dataset_pred_for_GAN
 from math import log10, sqrt
 from sklearn.metrics import mean_squared_error
+import numpy as np
 from numpy import mean
 from torch.utils.tensorboard import SummaryWriter
 from utils import plot_tensorboard
@@ -91,13 +92,12 @@ for epoch in range(100):
 
     print("mean error: " + str(mean(error_list)))
     print("mean GAN error: " + str(mean(error_GAN_list)))
-    print("mean deviation gt-kf:" + str(mean(abs(gt_list[:, None] - kf_list))))
-    print("mean deviation gt-GAN:" + str(mean(abs(gt_list[:, None] - gan_list))))
-    print("max deviation gt-kf:" + str(max(abs(gt_list[:, None] - kf_list))))
-    print("max deviation gt-GAN:" + str(max(abs(gt_list[:, None] - gan_list))))
-
-    print("RMS error gt-kf" + str(sqrt(mean_squared_error(gt_list, kf_list))))
-    print("RMS error gt-GAN" + str(sqrt(mean_squared_error(gt_list, gan_list))))
+    print("mean deviation gt-kf: %.4f" % np.mean(np.abs(np.asarray(gt_list) - np.asarray(kf_list) )))
+    print("mean deviation gt-GAN: %.4f" % np.mean(np.abs(np.asarray(gt_list) - np.asarray(gan_list) )))
+    print("max deviation gt-kf: %.4f" % np.max(np.abs(np.asarray(gt_list) - np.asarray(kf_list) )))
+    print("max deviation gt-GAN: %.4f" % np.max(np.abs(np.asarray(gt_list) - np.asarray(gan_list) )))
+    print("RMS error gt-kf: %.4f" % sqrt(mean_squared_error(gt_list, kf_list)) )
+    print("RMS error gt-GAN: %.4f" % sqrt(mean_squared_error(gt_list, gan_list)) )
     print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(test_dataloader)))
     plot_tensorboard(writer,[gt_list, kf_list],['b','r'],Labels=["gt","kf"],Name="Image_kf")
     plot_tensorboard(writer,[gt_list, gan_list],['b','r'],Labels=["gt","GAN"],Name="Image_GAN")
