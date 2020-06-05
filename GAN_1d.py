@@ -24,7 +24,7 @@ from networks import Generator, Discriminator, weights_init, GANLoss, update_lea
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', default=32, type=int, help='batch_size')
-parser.add_argument('--path', default="./data/Oxio_Dataset/", help='full path of dataset')
+parser.add_argument('--path', default="./data/preds/preds_theta_train_handheld/", help='full path of dataset')
 parser.add_argument('--dataset', default="oxford", help='useless parameter')
 parser.add_argument('--lr', default=0.0002, type=float, help='lr')
 parser.add_argument('--lamb', default=10.0, type=float, help='lambda')
