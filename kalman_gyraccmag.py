@@ -52,7 +52,7 @@ B = np.array([[dt, 0, 0],
               [0, 0, 0],
               [0, dt, 0],
               [0, 0, 0],
-              [0, 0, dt]
+              [0, 0, dt],
               [0, 0, 0]])
 
 C = np.array([[1, 0, 0, 0, 0, 0],
@@ -62,7 +62,7 @@ P = np.eye(6)
 Q = np.eye(6)
 R = np.eye(3)
 
-state_estimate = np.array([[0], [0], [0], [0], [0], [0]])   # roll, roll bias, pitch, pitch bias
+state_estimate = np.array([[0], [0], [0], [0], [0], [0]])   # roll, roll bias, pitch, pitch bias, yaw, yaw bias
 
 phi_hat = 0.0
 theta_hat = 0.0
@@ -98,7 +98,8 @@ for i in range(N):
     # Get gyro and mag measurements
     [p, q, r, _, _, _, mx, my, mz] = imu.__getitem__(i)
     # Calculate psi on the basis of mag data and phi and theta derived from acc (STILL CALLED ACC FOR EASY READING)
-    psi_acc = atan2((-my*cos(phi_acc) + mz*sin(phi_acc)), (mx*cos(theta_acc) + my*sin(theta_acc)*sin(phi_acc) + mz*sin(theta_acc)*cos(phi_acc)))
+    psi_acc = atan2((-my*cos(phi_hat) + mz*sin(phi_hat)), (mx*cos(theta_hat) + my*sin(theta_hat)*sin(phi_hat) + mz*sin(theta_hat)*cos(phi_hat)))
+#    psi_acc -= .0873
     # calculate Euler angle derivatives from gyro measurements
     phi_dot = p + sin(phi_hat) * tan(theta_hat) * q + cos(phi_hat) * tan(theta_hat) * r
     theta_dot = cos(phi_hat) * q - sin(phi_hat) * r
@@ -115,9 +116,9 @@ for i in range(N):
     state_estimate = state_estimate + K.dot(y_tilde)
     P = (np.eye(6) - K.dot(C)).dot(P)
 
-    phi_hat = state_estimate[0]
-    theta_hat = state_estimate[1]
-    psi_hat = state_estimate[2]
+    phi_hat = state_estimate[0][0]
+    theta_hat = state_estimate[2][0]
+    psi_hat = state_estimate[4][0]
     phi_kf.append(phi_hat)
     theta_kf.append(theta_hat)
     psi_kf.append(psi_hat)
@@ -137,12 +138,12 @@ for i in range(N):
     theta_acc_list.append(theta_acc)
     psi_acc_list.append(psi_acc)
 
-    writer.add_scalar('kf_phi', phi_hat, i+1)
-    writer.add_scalar('kf_theta', theta_hat, i+1)
-    writer.add_scalar('kf_psi', psi_hat, i+1)
-    writer.add_scalar('orient_phi', roll, i+1)
-    writer.add_scalar('orient_theta', pitch, i+1)
-    writer.add_scalar('orient_psi', yaw, i+1)
+#    writer.add_scalar('kf_phi', phi_hat, i+1)
+#    writer.add_scalar('kf_theta', theta_hat, i+1)
+#    writer.add_scalar('kf_psi', psi_hat, i+1)
+#    writer.add_scalar('orient_phi', roll, i+1)
+#    writer.add_scalar('orient_theta', pitch, i+1)
+#    writer.add_scalar('orient_psi', yaw, i+1)
 
 np_phi_kf = np.asarray(phi_kf)
 np_phi_gt = np.asarray(phi_gt)
@@ -185,7 +186,7 @@ dictionary = {
 "psi_dot"  : np.asarray(psi_dot_list),
 "phi_acc"    : np.asarray(phi_acc_list),
 "theta_acc"  : np.asarray(theta_acc_list),
-"psi_acc"  : np.asarray(tpsi_acc_list)
+"psi_acc"  : np.asarray(psi_acc_list)
 }
 
 #np.save("./preds/" + "theta_gt_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".npy", np_theta_gt)
@@ -193,17 +194,17 @@ dictionary = {
 Path("./preds/").mkdir(parents=True, exist_ok=True)
 with open("./preds/" + "dict_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".pkl", 'wb') as f: pickle.dump(dictionary, f)
 
-rel_errors = [abs(i-j)/i*100 for i,j in zip(phi_gt,phi_kf) if abs(i)!=0 ]
-rel_errors = np.array([num for num in rel_errors if num == num]) #sporco barbatrucco per scoprire se un numero è NaN!!
-print("TRUE_rel_error phi: %.5f" %  rel_errors.mean())
-mse = ((np_phi_gt - np_phi_kf)**2).mean(axis=None)
-print("mse phi: " + str(mse))
+#rel_errors = [abs(i-j)/i*100 for i,j in zip(phi_gt,phi_kf) if abs(i)!=0 ]
+#rel_errors = np.array([num for num in rel_errors if num == num]) #sporco barbatrucco per scoprire se un numero è NaN!!
+#print("TRUE_rel_error phi: %.5f" %  rel_errors.mean())
+#mse = ((np_phi_gt - np_phi_kf)**2).mean(axis=None)
+#print("mse phi: " + str(mse))
 
-rel_errors = [abs(i-j)/i*100 for i,j in zip(theta_gt,theta_kf) if abs(i)!=0 ]
-rel_errors = np.array([num for num in rel_errors if num == num])
-print("TRUE_rel_error theta: %.5f" %  rel_errors.mean())
-mse = ((np_theta_gt - np_theta_kf)**2).mean(axis=None)
-print("mse theta: " + str(mse))
+#rel_errors = [abs(i-j)/i*100 for i,j in zip(theta_gt,theta_kf) if abs(i)!=0 ]
+#rel_errors = np.array([num for num in rel_errors if num == num])
+#print("TRUE_rel_error theta: %.5f" %  rel_errors.mean())
+#mse = ((np_theta_gt - np_theta_kf)**2).mean(axis=None)
+#print("mse theta: " + str(mse))
 
 times_list = [i for i in range(0, N)]
 plot_tensorboard(writer, [phi_kf, phi_gt], ['b', 'r'], ['phi_kf', 'phi_gt'])
