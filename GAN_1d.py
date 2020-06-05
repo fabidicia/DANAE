@@ -11,7 +11,8 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from datasets import Dataset_pred_for_GAN
-from math import log10
+from math import log10, sqrt
+from sklearn.metrics import mean_squared_error
 from numpy import mean
 from torch.utils.tensorboard import SummaryWriter
 from utils import plot_tensorboard
@@ -88,9 +89,15 @@ for epoch in range(100):
             kf_list += real_a[0,0,:].tolist()
             gan_list += pred[0,0,:].tolist()
 
-    print("mean error: "  +str(mean(error_list)))
-    print("mean GAN error: "  +str(mean(error_GAN_list)))
+    print("mean error: " + str(mean(error_list)))
+    print("mean GAN error: " + str(mean(error_GAN_list)))
+    print("mean deviation gt-kf:" + str(mean(abs(gt_list[:, None] - kf_list))))
+    print("mean deviation gt-GAN:" + str(mean(abs(gt_list[:, None] - gan_list))))
+    print("max deviation gt-kf:" + str(max(abs(gt_list[:, None] - kf_list))))
+    print("max deviation gt-GAN:" + str(max(abs(gt_list[:, None] - gan_list))))
 
+    print("RMS error gt-kf" + str(sqrt(mean_squared_error(gt_list, kf_list))))
+    print("RMS error gt-GAN" + str(sqrt(mean_squared_error(gt_list, gan_list))))
     print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(test_dataloader)))
     plot_tensorboard(writer,[gt_list, kf_list],['b','r'],Labels=["gt","kf"],Name="Image_kf")
     plot_tensorboard(writer,[gt_list, gan_list],['b','r'],Labels=["gt","GAN"],Name="Image_GAN")
