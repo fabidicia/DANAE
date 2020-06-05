@@ -158,3 +158,108 @@ class YOLO_LSTM(nn.Module):
             lstm_out = self.dropout(lstm_out)
             out = self.fc(lstm_out)
             return out, hidden_state
+
+class Generator(nn.Module):
+    def __init__(self):
+        super(Generator, self).__init__()
+        self.conv1 = nn.Conv1d(1,128,kernel_size=3,stride=1,padding=1, bias=True)
+        self.relu = nn.ReLU(True)
+        self.conv2 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+        self.conv3 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+        self.conv4 = nn.Conv1d(128,128,kernel_size=3,dilation=6,stride=1, padding=1,bias=True)
+
+        self.deconv1 = nn.ConvTranspose1d(128,128,kernel_size=3,dilation=6,stride=1, padding=1,bias=True)
+        self.deconv2 = nn.ConvTranspose1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+        self.deconv3 = nn.ConvTranspose1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+
+        self.conv5 = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv6 = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv7 = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv_final = nn.Conv1d(128,1,kernel_size=3,stride=1, padding=1,bias=True)
+
+##E SE APPLICASSI UN GRANDE RESIDUAL FRA INPUT E OUTPUT??
+    def forward(self, input):
+        out1 = self.relu(self.conv1(input))
+        out2 = self.relu(self.conv2(out1))
+        out3 = self.relu(self.conv3(out2))
+        out4 = self.relu(self.conv4(out3))
+        out_1 = self.relu(self.deconv1(out4))
+        out_11 = self.relu(self.conv5(out_1 + out3))
+        out_2 = self.relu(self.deconv2(out_11))
+        out_22 = self.relu(self.conv6(out_2 + out2))
+        out_3 = self.relu(self.deconv3(out_22))
+        out_33 = self.relu(self.conv7(out_3 + out1))
+        out = self.conv_final(out_33)
+        return out, out4
+
+class Discriminator(nn.Module):
+    def __init__(self, use_sigmoid=False):
+        super(Discriminator, self).__init__()
+        #self.conv1 = nn.Conv1d(128,512,kernel_size=3,stride=1, bias=True)
+        #self.lrelu = nn.LeakyReLU(0.2, inplace=True)
+        self.relu = nn.ReLU(True)
+        self.fc1=nn.Linear(128,150,bias=True)
+        self.fc2=nn.Linear(150,150,bias=True)
+        self.fc_final=nn.Linear(150,2,bias=True)
+        self.use_sigmoid = use_sigmoid
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, input):
+        #x = self.lrelu(self.conv1(input))
+        x = F.adaptive_avg_pool1d(input,(1))
+        x = x.reshape(-1,128)
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.fc_final(x)
+        if self.use_sigmoid:
+            x = self.sigmoid(x)
+        return x
+
+# custom weights initialization called on netG and netD
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        torch.nn.init.normal_(m.weight, 0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        torch.nn.init.normal_(m.weight, 1.0, 0.02)
+        torch.nn.init.zeros_(m.bias)
+
+def get_norm_layer(norm_type='instance'):
+    if norm_type == 'batch':
+        norm_layer = functools.partial(nn.BatchNorm2d, affine=True)
+    elif norm_type == 'instance':
+        norm_layer = functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=False)
+    elif norm_type == 'switchable':
+        norm_layer = SwitchNorm2d
+    elif norm_type == 'none':
+        norm_layer = None
+    else:
+        raise NotImplementedError('normalization layer [%s] is not found' % norm_type)
+    return norm_layer
+
+
+class GANLoss(nn.Module):
+    def __init__(self, use_lsgan=True, target_real_label=1.0, target_fake_label=0.0):
+        super(GANLoss, self).__init__()
+        self.register_buffer('real_label', torch.tensor(target_real_label))
+        self.register_buffer('fake_label', torch.tensor(target_fake_label))
+        if use_lsgan:
+            self.loss = nn.MSELoss()
+        else:
+            self.loss = nn.BCELoss()
+
+    def get_target_tensor(self, input, target_is_real):
+        if target_is_real:
+            target_tensor = self.real_label
+        else:
+            target_tensor = self.fake_label
+        return target_tensor.expand_as(input)
+
+    def __call__(self, input, target_is_real):
+        target_tensor = self.get_target_tensor(input, target_is_real)
+        return self.loss(input, target_tensor)
+
+def update_learning_rate(scheduler, optimizer):
+    scheduler.step()
+    lr = optimizer.param_groups[0]['lr']
+    print('learning rate = %.7f' % lr)
