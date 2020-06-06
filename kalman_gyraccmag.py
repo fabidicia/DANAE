@@ -94,9 +94,15 @@ print("Running...")
 for i in range(N):
     # Get accelerometer measurements and remove offsets
     [phi_acc, theta_acc] = imu.get_acc_angles(i)
-
     # Get gyro and mag measurements
     [p, q, r, _, _, _, mx, my, mz] = imu.__getitem__(i)
+    # normalize mag readings
+    m_norm = sqrt((mx*mx)+(my*my)+(mz*mz))
+    mx = (mx/m_norm)
+    my = (my/m_norm)
+    mz = (mz/m_norm)
+    # import pdb; pdb.set_trace()
+
     # Calculate psi on the basis of mag data and phi and theta derived from acc (STILL CALLED ACC FOR EASY READING)
     psi_acc = atan2((-my*cos(phi_hat) + mz*sin(phi_hat)), (mx*cos(theta_hat) + my*sin(theta_hat)*sin(phi_hat) + mz*sin(theta_hat)*cos(phi_hat)))
 #    psi_acc -= .0873
@@ -123,11 +129,11 @@ for i in range(N):
     theta_kf.append(theta_hat)
     psi_kf.append(psi_hat)
 
-    roll, pitch, yaw = imu.get_orient(i)
-    phi_gt.append(roll)
+    roll, pitch, yaw = imu.get_ang_groundt(i)
+    phi_gt.append(roll)     # domanda importante: ma noi stiamo dando come gt l'orientamento misurato dal cellulare? NON LA VERA GT!!
     theta_gt.append(pitch)
     psi_gt.append(yaw)
-    ### other list appends:
+    # other list appends:
     p_list.append(p)
     q_list.append(q)
     r_list.append(r)
@@ -158,18 +164,17 @@ np_phi_dot = np.asarray(phi_dot_list)
 np_theta_dot = np.asarray(theta_dot_list)
 np_psi_dot = np.asarray(psi_dot_list)
 
-print("mean deviation phi (gt-kf): %.4f" % np.mean(np.abs(np_phi_gt - np_phi_kf)))
-print("mean deviation theta (gt-kf): %.4f" % np.mean(np.abs(np_theta_gt - np_theta_kf)))
-print("mean deviation psi (gt-kf): %.4f" % np.mean(np.abs(np_psi_gt - np_psi_kf)))
+print("mean deviation phi (gt-kf): %.4f" % np.mean(np.abs((np_phi_gt - np_phi_kf)*180/pi)))
+print("mean deviation theta (gt-kf): %.4f" % np.mean(np.abs((np_theta_gt - np_theta_kf)*180/pi)))
+print("mean deviation psi (gt-kf): %.4f" % np.mean(np.abs((np_psi_gt - np_psi_kf)*180/pi)))
 
-print("max deviation phi (gt-kf): %.4f" % np.max(np.abs(np_phi_gt - np_phi_kf)))
-print("max deviation theta (gt-kf): %.4f" % np.max(np.abs(np_theta_gt - np_theta_kf)))
-print("max deviation psi (gt-kf): %.4f" % np.max(np.abs(np_psi_gt - np_psi_kf)))
+print("max deviation phi (gt-kf): %.4f" % np.max(np.abs((np_phi_gt - np_phi_kf)*180/pi)))
+print("max deviation theta (gt-kf): %.4f" % np.max(np.abs((np_theta_gt - np_theta_kf)*180/pi)))
+print("max deviation psi (gt-kf): %.4f" % np.max(np.abs((np_psi_gt - np_psi_kf)*180/pi)))
 
-print("RMS error phi: %.4f" % sqrt(mean_squared_error(np_phi_gt, np_phi_kf)) )
-print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_theta_gt, np_theta_kf)) )
-print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_psi_gt, np_psi_kf)) )
-
+print("RMS error phi: %.4f" % sqrt(mean_squared_error(np_phi_gt, np_phi_kf)))
+print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_theta_gt, np_theta_kf)))
+print("RMS error psi: %.4f" % sqrt(mean_squared_error(np_psi_gt, np_psi_kf)))
 
 dictionary = {
 "phi_kf"     : np.asarray(phi_kf),
@@ -211,6 +216,5 @@ plot_tensorboard(writer, [phi_kf, phi_gt], ['b', 'r'], ['phi_kf', 'phi_gt'])
 # plot_tensorboard(writer, [phi_gt], ['r'], ['orient_phi'])
 plot_tensorboard(writer, [theta_kf, theta_gt], ['b', 'r'], ['theta_kf', 'theta_gt'])
 # plot_tensorboard(writer, [theta_gt], ['r'], ['orient_theta'])
+plot_tensorboard(writer, [psi_kf, theta_gt], ['b', 'r'], ['psi_kf', 'psi_gt'])
 writer.close()
-
-  

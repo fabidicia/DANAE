@@ -9,13 +9,14 @@ from time import sleep
 import glob
 import pickle
 
+
 class OXFDataset(Dataset):
     def __init__(self, path="./data/Oxio_Dataset/handheld/data3/syn/imu3.csv"):
         self.path = path
         with open(self.path) as imudata:
             imu_iter = csv.reader(imudata)
             imulist = [line for line in imu_iter]
-        with open(self.path.replace("imu","vi")) as gtdata:
+        with open(self.path.replace("imu", "vi")) as gtdata:
             gt_iter = csv.reader(gtdata)
             gtlist = [line for line in gt_iter]
 
@@ -58,12 +59,13 @@ class OXFDataset(Dataset):
         return [phi, theta]
 
     def get_orient(self, i):   # METODO
-        roll = float(self.imu_mat[i, 2]) #* pi / 180.0
-        pitch = float(self.imu_mat[i, 1]) # * pi / 180.0
-        yaw = float(self.imu_mat[i, 0]) #* pi / 180.0
+        roll = float(self.imu_mat[i, 1]) #* pi / 180.0
+        pitch = float(self.imu_mat[i, 2]) # * pi / 180.0
+        yaw = float(self.imu_mat[i, 3]) #* pi / 180.0
         return -roll, -pitch, yaw
 
     def quaternion_to_euler(self, x, y, z, w):
+        x, y, z, w = float(x), float(y), float(z), float(w)
         t0 = +2.0 * (w * x + y * z)
         t1 = +1.0 - 2.0 * (x * x + y * y)
         roll = math.atan2(t0, t1)
