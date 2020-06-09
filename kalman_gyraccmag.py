@@ -109,11 +109,12 @@ for i in range(N):
     psi_acc *= .0073    # con questo coefficiente la stima è più veritiera
 
     # calculate Euler angle derivatives from gyro measurements
-    ### NECESSARIO AGGIUNGERE PHI_HAT, THETA_HAT E PSI_HAT? nei risultati non ci sono evidenti cambiamenti
-    phi_dot = phi_hat + (p + sin(phi_hat) * tan(theta_hat) * q + cos(phi_hat) * tan(theta_hat) * r)
-    theta_dot = theta_hat + cos(phi_hat) * q - sin(phi_hat) * r
-    psi_dot = psi_hat + (sin(phi_hat) / cos(theta_hat)*q + cos(phi_hat) / cos(theta_hat) * r)
-    
+    phi_dot = (p + sin(phi_hat) * tan(theta_hat) * q + cos(phi_hat) * tan(theta_hat) * r)
+    theta_dot = cos(phi_hat) * q - sin(phi_hat) * r
+    psi_dot = (sin(phi_hat) / cos(theta_hat)*q + cos(phi_hat) / cos(theta_hat) * r)
+    # psi_dot = psi_hat + (sin(phi_hat) / cos(theta_hat)*q + cos(phi_hat) / cos(theta_hat) * r)
+    # NECESSARIO AGGIUNGERE PHI_HAT, THETA_HAT E PSI_HAT? nei risultati non ci sono evidenti cambiamenti
+
 
     # initialize kf using gyro as external input
     gyro_input = np.array([[phi_dot], [theta_dot], [psi_dot]])
