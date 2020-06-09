@@ -42,10 +42,14 @@ class OXFDataset(Dataset):
         gravz = float(self.imu_mat[i, 9])
         accx = float(self.imu_mat[i, 10])
         accy = float(self.imu_mat[i, 11])
-        accz = float(self.imu_mat[i, 11])
-        Ax = accx + gravx
-        Ay = accy + gravy
-        Az = accz + gravz
+        accz = float(self.imu_mat[i, 12])
+        # Ax = accx + gravx
+        # Ay = accy + gravy
+        # Az = accz + gravz
+        Ax = gravx - accx
+        Ay = gravy - accy
+        Az = gravz - accz
+
         # mag output resolution  0.3µT /LSB
         Mx = float(self.imu_mat[i, 13])
         My = float(self.imu_mat[i, 14])
@@ -56,13 +60,14 @@ class OXFDataset(Dataset):
         [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
         phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
         theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
-        return [phi, theta]
+        psi = math.atan2(math.sqrt(ax ** 2.0 + ay ** 2.0), az)
+        return [phi, theta, psi]
 
     def get_orient(self, i):   # METODO
         roll = float(self.imu_mat[i, 1]) #* pi / 180.0
         pitch = float(self.imu_mat[i, 2]) # * pi / 180.0
         yaw = float(self.imu_mat[i, 3]) #* pi / 180.0
-        return -roll, -pitch, yaw
+        return roll, pitch, yaw
 
     def quaternion_to_euler(self, x, y, z, w):
         x, y, z, w = float(x), float(y), float(z), float(w)
