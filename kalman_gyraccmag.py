@@ -4,6 +4,7 @@
 # Riadaptation
 
 from datasets import *
+from datasets import butter_lowpass, butter_lowpass_filter
 import numpy as np
 import pickle
 import io
@@ -138,7 +139,7 @@ for i in range(N):
     psi_kf.append(psi_hat)  # qui c'era un moltiplicativo (* .0273)
 
     roll, pitch, yaw = imu.get_ang_groundt(i)
-    phi_gt.append(roll)     # domanda importante: ma noi stiamo dando come gt l'orientamento misurato dal cellulare? NON LA VERA GT!!
+    phi_gt.append(roll)
     theta_gt.append(pitch)
     psi_gt.append(yaw)
     # other list appends:
@@ -172,6 +173,18 @@ np_phi_dot = np.asarray(phi_dot_list)
 np_theta_dot = np.asarray(theta_dot_list)
 np_psi_dot = np.asarray(psi_dot_list)
 
+# filter requirements
+order = 2
+fs = 10.0   # sample rate, Hz
+cutoff = 0.667  # desired cutoff frequency of the filter, Hz
+# filter coefficients
+b, a = butter_lowpass(cutoff, fs, order)
+# filtering data
+
+phi_kf_fil = butter_lowpass_filter(np_phi_kf, cutoff, fs, order)
+theta_kf_fil = butter_lowpass_filter(np_theta_kf, cutoff, fs, order)
+psi_kf_fil = butter_lowpass_filter(np_psi_kf, cutoff, fs, order)
+
 print("mean deviation phi (gt-kf): %.4f" % np.mean(np.abs((np_phi_gt - np_phi_kf)*180/pi)))
 print("mean deviation theta (gt-kf): %.4f" % np.mean(np.abs((np_theta_gt - np_theta_kf)*180/pi)))
 print("mean deviation psi (gt-kf): %.4f" % np.mean(np.abs((np_psi_gt - np_psi_kf)*180/pi)))
@@ -184,22 +197,39 @@ print("RMS error phi: %.4f" % sqrt(mean_squared_error(np_phi_gt, np_phi_kf)))
 print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_theta_gt, np_theta_kf)))
 print("RMS error psi: %.4f" % sqrt(mean_squared_error(np_psi_gt, np_psi_kf)))
 
+# filtered data
+print("mean deviation phi (gt-kf_fil): %.4f" % np.mean(np.abs((np_phi_gt - phi_kf_fil)*180/pi)))
+print("mean deviation theta (gt-kf_fil): %.4f" % np.mean(np.abs((np_theta_gt - theta_kf_fil)*180/pi)))
+print("mean deviation psi (gt-kf_fil): %.4f" % np.mean(np.abs((np_psi_gt - psi_kf_fil)*180/pi)))
+
+print("max deviation phi (gt-kf_fil): %.4f" % np.max(np.abs((np_phi_gt - phi_kf_fil)*180/pi)))
+print("max deviation theta (gt-kf_fil): %.4f" % np.max(np.abs((np_theta_gt - theta_kf_fil)*180/pi)))
+print("max deviation psi (gt-kf_fil): %.4f" % np.max(np.abs((np_psi_gt - psi_kf_fil)*180/pi)))
+
+print("RMS error phi_fil: %.4f" % sqrt(mean_squared_error(np_phi_gt, phi_kf_fil)))
+print("RMS error theta_fil: %.4f" % sqrt(mean_squared_error(np_theta_gt, theta_kf_fil)))
+print("RMS error psi_fil: %.4f" % sqrt(mean_squared_error(np_psi_gt, psi_kf_fil)))
+
+
 dictionary = {
-"phi_kf"     : np.asarray(phi_kf),
-"phi_gt"     : np.asarray(phi_gt),
-"theta_kf"   : np.asarray(theta_kf),
-"theta_gt"   : np.asarray(theta_gt),
-"psi_kf"   : np.asarray(psi_kf),
-"psi_gt"   : np.asarray(psi_gt),
-"p"          : np.asarray(p_list),
-"q"          : np.asarray(q_list),
-"r"          : np.asarray(r_list),
-"phi_dot"    : np.asarray(phi_dot_list),
-"theta_dot"  : np.asarray(theta_dot_list),
-"psi_dot"  : np.asarray(psi_dot_list),
-"phi_acc"    : np.asarray(phi_acc_list),
-"theta_acc"  : np.asarray(theta_acc_list),
-"psi_acc"  : np.asarray(psi_acc_list)
+    "phi_kf": np.asarray(phi_kf),
+    "phi_gt": np.asarray(phi_gt),
+    "theta_kf": np.asarray(theta_kf),
+    "theta_gt": np.asarray(theta_gt),
+    "psi_kf": np.asarray(psi_kf),
+    "psi_gt": np.asarray(psi_gt),
+    "p": np.asarray(p_list),
+    "q": np.asarray(q_list),
+    "r": np.asarray(r_list),
+    "phi_dot": np.asarray(phi_dot_list),
+    "theta_dot": np.asarray(theta_dot_list),
+    "psi_dot": np.asarray(psi_dot_list),
+    "phi_acc": np.asarray(phi_acc_list),
+    "theta_acc": np.asarray(theta_acc_list),
+    "psi_acc": np.asarray(psi_acc_list),
+    "phi_kf_fil": np.asarray(phi_kf_fil),
+    "theta_kf_fil": np.asarray(theta_kf_fil),
+    "psi_kf_fil": np.asarray(psi_kf_fil)
 }
 
 #np.save("./preds/" + "theta_gt_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".npy", np_theta_gt)
@@ -220,9 +250,9 @@ with open("./preds/" + "dict_" + args.path.split("/")[-3]+"_"+ args.path.split("
 #print("mse theta: " + str(mse))
 
 times_list = [i for i in range(0, N)]
-plot_tensorboard(writer, [phi_kf, phi_gt], ['b', 'r'], ['phi_kf', 'phi_gt'])
+plot_tensorboard(writer, [phi_kf, phi_gt, phi_kf_fil], ['b', 'r', 'g'], ['phi_kf', 'phi_gt', 'phi_kf_fil'])
 # plot_tensorboard(writer, [phi_gt], ['r'], ['orient_phi'])
-plot_tensorboard(writer, [theta_kf, theta_gt], ['b', 'r'], ['theta_kf', 'theta_gt'])
+plot_tensorboard(writer, [theta_kf, theta_gt, theta_kf_fil], ['b', 'r', 'g'], ['theta_kf', 'theta_gt', 'theta_kf_fil'])
 # plot_tensorboard(writer, [theta_gt], ['r'], ['orient_theta'])
-plot_tensorboard(writer, [psi_kf, theta_gt], ['b', 'r'], ['psi_kf', 'psi_gt'])
+plot_tensorboard(writer, [psi_kf, theta_gt, psi_kf_fil], ['b', 'r', 'g'], ['psi_kf', 'psi_gt', 'psi_kf_fil'])
 writer.close()

@@ -3,11 +3,26 @@ from torch.utils.data import Dataset
 import torch
 import csv
 from math import sin, cos, atan, pi
+from scipy.signal import butter, lfilter, filtfilt, freqz
 import scipy.io
 import math
 from time import sleep
 import glob
 import pickle
+
+
+def butter_lowpass(cutoff, fs, order):
+    nyq = 0.5 * fs
+    normal_cutoff = cutoff / nyq
+    b, a = butter(order, normal_cutoff, btype='low', analog=False)
+    return b, a
+
+
+def butter_lowpass_filter(data, cutoff, fs, order):
+    b, a = butter_lowpass(cutoff, fs, order=order)
+    fil = filtfilt(b, a, data)
+#    fil = lfilter(b, a, data)
+    return fil
 
 
 class OXFDataset(Dataset):
