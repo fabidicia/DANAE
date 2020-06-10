@@ -144,9 +144,9 @@ class datasetMatlabIMU(Dataset):
         return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
 
     def get_orient(self, i):   # METODO
-        roll = float(self.imu_mat[i, 2]) #* pi / 180.0
-        pitch = float(self.imu_mat[i, 1]) #* pi / 180.0
-        yaw = float(self.imu_mat[i, 0]) #* pi / 180.0
+        roll = float(self.imu_mat[i, 2]) * pi / 180.0
+        pitch = float(self.imu_mat[i, 1]) * pi / 180.0
+        yaw = float(self.imu_mat[i, 0]) * pi / 180.0
         return roll, pitch, yaw
 
     def get_acc_angles(self, i):
@@ -154,6 +154,9 @@ class datasetMatlabIMU(Dataset):
         phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
         theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
         return [phi, theta]
+
+    def get_ang_groundt(self, i):   # METODO
+        return self.get_orient(i)
 
 
 class DatasetPhils(Dataset):
@@ -252,6 +255,8 @@ class Dataset9250(Dataset):
         theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
         return [phi, theta]
 
+    def get_ang_groundt(self, i):   # METODO
+        return self.get_orient(i)
 
 
 class MotherOfIMUdata(Dataset):

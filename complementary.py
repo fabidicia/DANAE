@@ -55,16 +55,15 @@ gyroRoll = 0
 gyroPitch = 0
 gyroYaw = 0
 
-roll = 0
-pitch = 0
-yaw = 0
+roll, pitch, yaw = imu.get_ang_groundt(0) ##INITIALIZE WITH TRUE GT VALUES!
+rollRads, pitchRads, yawRads = imu.get_ang_groundt(0) ##INITIALIZE WITH TRUE GT VALUES!
 
 dt = 0.1
-tau = 0.98 # fattore moltiplicativo del comp filter (98% affidabilità gyr, 2% acc)
+tau = 0.5 # fattore moltiplicativo del comp filter (98% affidabilità gyr, 2% acc)
 
 q = [1,0,0,0]
 beta = 1
-N = 1000
+N = 5000
 
 for i in range(N):
     # Get the processed values from IMU
@@ -80,8 +79,8 @@ for i in range(N):
     gyroYaw += gz * dt
 
     # Comp filter
-    rollRads = (tau)*(roll + gx*dt) + (1-tau)*(accRoll)
-    pitchRads = (tau)*(pitch - gy*dt) + (1-tau)*(accPitch)
+    rollRads = (tau)*(rollRads + gx*dt) + (1-tau)*(accRoll)
+    pitchRads = (tau)*(pitchRads - gy*dt) + (1-tau)*(accPitch)
 
     # Reassign mag X and Y values in accordance to MPU-9250 
     # codice originale scambia x ed y: prima modifica
@@ -113,7 +112,7 @@ for i in range(N):
         yaw = 270
     else:
         print('Error')
-    yawRads = math.radians(yaw) #*0.0078
+    yawRads = math.radians(yaw) - 1.75 ##TRICK
     phi_kf.append(rollRads)
     theta_kf.append(pitchRads)
     psi_kf.append(yawRads)  # è il nostro complementary
