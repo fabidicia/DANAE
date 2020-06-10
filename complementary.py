@@ -1,3 +1,4 @@
+#booh
 # Kalman Filter Implementation for MPU-6050 6DOF IMU
 #
 # Author: Philip Salmony [pms67@cam.ac.uk]
@@ -112,7 +113,7 @@ for i in range(N):
         yaw = 270
     else:
         print('Error')
-    yawRads = math.radians(yaw) *0.0078
+    yawRads = math.radians(yaw) - 1.75 ##TRICK
     phi_kf.append(rollRads)
     theta_kf.append(pitchRads)
     psi_kf.append(yawRads)  # è il nostro complementary
