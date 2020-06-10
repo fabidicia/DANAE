@@ -113,7 +113,7 @@ for i in range(N):
         yaw = 270
     else:
         print('Error')
-    yawRads = math.radians(yaw) *0.0078
+    yawRads = math.radians(yaw) #*0.0078
     phi_kf.append(rollRads)
     theta_kf.append(pitchRads)
     psi_kf.append(yawRads)  # è il nostro complementary
@@ -188,5 +188,5 @@ plot_tensorboard(writer, [phi_kf, phi_gt, phi_kf_fil], ['b', 'r', 'g'], ['phi_kf
 # plot_tensorboard(writer, [phi_gt], ['r'], ['orient_phi'])
 plot_tensorboard(writer, [theta_kf, theta_gt, theta_kf_fil], ['b', 'r', 'g'], ['theta_kf', 'theta_gt', 'theta_kf_fil'])
 # plot_tensorboard(writer, [theta_gt], ['r'], ['orient_theta'])
-plot_tensorboard(writer, [psi_kf, theta_gt, psi_kf_fil], ['b', 'r', 'g'], ['psi_kf', 'psi_gt', 'psi_kf_fil'])
+plot_tensorboard(writer, [psi_kf, psi_gt, psi_kf_fil], ['b', 'r', 'g'], ['psi_kf', 'psi_gt', 'psi_kf_fil'])
 writer.close()
