@@ -51,6 +51,10 @@ phi_gt = []
 theta_gt = []
 psi_gt = []
 
+phi_mad = []
+theta_mad = []
+psi_mad = []
+
 gyroRoll = 0
 gyroPitch = 0
 gyroYaw = 0
@@ -123,6 +127,109 @@ for i in range(N):
     theta_gt.append(pitch)
     psi_gt.append(yaw)
 
+    ## madgwickFilter
+    # Quaternion values
+    q1 = q[0]
+    q2 = q[1]
+    q3 = q[2]
+    q4 = q[3]
+
+    # Auxiliary variables
+    q1x2 = 2 * q1
+    q2x2 = 2 * q2
+    q3x2 = 2 * q3
+    q4x2 = 2 * q4
+    q1q3x2 = 2 * q1 * q3
+    q3q4x2 = 2 * q3 * q4
+    q1q1 = q1 * q1
+    q1q2 = q1 * q2
+    q1q3 = q1 * q3
+    q1q4 = q1 * q4
+    q2q2 = q2 * q2
+    q2q3 = q2 * q3
+    q2q4 = q2 * q4
+    q3q3 = q3 * q3
+    q3q4 = q3 * q4
+    q4q4 = q4 * q4
+
+    # Normalize accelerometer measurement
+    norm = math.sqrt(ax * ax + ay * ay + az * az)
+    # if norm is 0: return
+    ax /= norm
+    ay /= norm
+    az /= norm
+
+    # Normalize magnetometer measurement
+    norm = math.sqrt(mx * mx + my * my + mz * mz)
+    # if norm is 0: return
+    mx /= norm
+    my /= norm
+    mz /= norm
+
+    # Reference direction of Earth's magnetic field
+    hx = mx * q1q1 - (2*q1*my) * q4 + (2*q1*mz) * q3 + mx * q2q2 + q2x2 * my * q3 + q2x2 * mz * q4 - mx * q3q3 - mx * q4q4
+    hy = (2*q1*mx) * q4 + my * q1q1 - (2*q1*mz) * q2 + (2*q2*mx) * q3 - my * q2q2 + my * q3q3 + q3x2 * mz * q4 - my * q4q4
+    bx_2 = math.sqrt(hx * hx + hy * hy)
+    bz_2 = -(2*q1*mx) * q3 + (2*q1*my) * q2 + mz * q1q1 + (2*q2*mx) * q4 - mz * q2q2 + q3x2 * my * q4 - mz * q3q3 + mz * q4q4
+    bx_4 = 2 * bx_2
+    bz_4 = 2 * bz_2
+
+    # Gradient descent algorithm corrective step
+    s1 = -q3x2 * (2 * q2q4 - q1q3x2 - ax) + q2x2 * (2 * q1q2 + q3q4x2 - ay) - bz_2 * q3 * (bx_2 * (0.5 - q3q3 - q4q4) + bz_2 * (q2q4 - q1q3) - mx) + (-bx_2 * q4 + bz_2 * q2) * (bx_2 * (q2q3 - q1q4) + bz_2 * (q1q2 + q3q4) - my) + bx_2 * q3 * (bx_2 * (q1q3 + q2q4) + bz_2 * (0.5 - q2q2 - q3q3) - mz)
+    s2 = q4x2 * (2 * q2q4 - q1q3x2 - ax) + q1x2 * (2 * q1q2 + q3q4x2 - ay) - 4 * q2 * (1 - 2 * q2q2 - 2 * q3q3 - az) + bz_2 * q4 * (bx_2 * (0.5 - q3q3 - q4q4) + bz_2 * (q2q4 - q1q3) - mx) + (bx_2 * q3 + bz_2 * q1) * (bx_2 * (q2q3 - q1q4) + bz_2 * (q1q2 + q3q4) - my) + (bx_2 * q4 - bz_4 * q2) * (bx_2 * (q1q3 + q2q4) + bz_2 * (0.5 - q2q2 - q3q3) - mz)
+    s3 = -q1x2 * (2 * q2q4 - q1q3x2 - ax) + q4x2 * (2 * q1q2 + q3q4x2 - ay) - 4 * q3 * (1 - 2 * q2q2 - 2 * q3q3 - az) + (-bx_4 * q3 - bz_2 * q1) * (bx_2 * (0.5 - q3q3 - q4q4) + bz_2 * (q2q4 - q1q3) - mx) + (bx_2 * q2 + bz_2 * q4) * (bx_2 * (q2q3 - q1q4) + bz_2 * (q1q2 + q3q4) - my) + (bx_2 * q1 - bz_4 * q3) * (bx_2 * (q1q3 + q2q4) + bz_2 * (0.5 - q2q2 - q3q3) - mz)
+    s4 = q2x2 * (2 * q2q4 - q1q3x2 - ax) + q3x2 * (2 * q1q2 + q3q4x2 - ay) + (-bx_4 * q4 + bz_2 * q2) * (bx_2 * (0.5 - q3q3 - q4q4) + bz_2 * (q2q4 - q1q3) - mx) + (-bx_2 * q1 + bz_2 * q3) * (bx_2 * (q2q3 - q1q4) + bz_2 * (q1q2 + q3q4) - my) + bx_2 * q2 * (bx_2 * (q1q3 + q2q4) + bz_2 * (0.5 - q2q2 - q3q3) - mz)
+
+    # Normalize step magnitude
+    norm = math.sqrt(s1 * s1 + s2 * s2 + s3 * s3 + s4 * s4)
+    s1 /= norm
+    s2 /= norm
+    s3 /= norm
+    s4 /= norm
+
+    # Compute rate of change of quaternion
+    qDot1 = 0.5 * (-q2 * gx - q3 * gy - q4 * gz) - beta * s1
+    qDot2 = 0.5 * (q1 * gx + q3 * gz - q4 * gy) - beta * s2
+    qDot3 = 0.5 * (q1 * gy - q2 * gz + q4 * gx) - beta * s3
+    qDot4 = 0.5 * (q1 * gz + q2 * gy - q3 * gx) - beta * s4
+
+    # Integrate to yield quaternion
+    q1 += qDot1 * dt
+    q2 += qDot2 * dt
+    q3 += qDot3 * dt
+    q4 += qDot4 * dt
+
+    # Normalize quaternion
+    norm = math.sqrt(q1 * q1 + q2 * q2 + q3 * q3 + q4 * q4)
+    q[0] = q1 / norm
+    q[1] = q2 / norm
+    q[2] = q3 / norm
+    q[3] = q4 / norm
+
+    # Get the data from the matrix
+    a12 = 2 * (q[1] * q[2] + q[0] * q[3])
+    a22 = q[0] * q[0] + q[1] * q[1] - q[2] * q[2] - q[3] * q[3]
+    a31 = 2 * (q[0] * q[1] + q[2] * q[3])
+    a32 = 2 * (q[1] * q[3] - q[0] * q[2])
+    a33 = q[0] * q[0] - q[1] * q[1] - q[2] * q[2] + q[3] * q[3]
+
+    # Perform the conversion to euler
+    roll = (math.degrees(math.atan2(a31, a33))) * pi/180
+    pitch = -math.degrees(math.asin(a32)) * pi/180
+    yaw = math.degrees(math.atan2(a12, a22)) * pi/180 * 0.0078
+
+    # Declination 14 deg 7 minutes at Edmonton May 31, 2019. Bound yaw between [0 360]
+#    yaw += 14.1
+#   if (yaw < 0):
+#      yaw += 360
+
+    # Print data
+    # print('R: {:<8.1f} P: {:<8.1f} Y: {:<8.1f}'.format(roll,pitch,yaw))
+    phi_mad.append(roll)
+    theta_mad.append(pitch)
+    psi_mad.append(yaw)
+
+
 # filter requirements
 order = 1
 fs = 10.0   # sample rate, Hz
@@ -133,10 +240,13 @@ b, a = butter_lowpass(cutoff, fs, order)
 
 np_phi_kf = np.asarray(phi_kf)
 np_phi_gt = np.asarray(phi_gt)
+np_phi_mad = np.asarray(phi_mad)
 np_theta_kf = np.asarray(theta_kf)
 np_theta_gt = np.asarray(theta_gt)
+np_theta_mad = np.asarray(theta_mad)
 np_psi_kf = np.asarray(psi_kf)
 np_psi_gt = np.asarray(psi_gt)
+np_psi_mad = np.asarray(psi_mad)
 
 # filtering data
 phi_kf_fil = butter_lowpass_filter(np_phi_kf, cutoff, fs, order)
@@ -155,6 +265,20 @@ print("max deviation psi (gt-kf): %.4f" % np.max(np.abs((np_psi_gt - np_psi_kf)*
 print("RMS error phi: %.4f" % sqrt(mean_squared_error(np_phi_gt, np_phi_kf)))
 print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_theta_gt, np_theta_kf)))
 print("RMS error psi: %.4f" % sqrt(mean_squared_error(np_psi_gt, np_psi_kf)))
+
+#madgwick
+print("mean deviation phi (gt-mad): %.4f" % np.mean(np.abs((np_phi_gt - np_phi_mad)*180/pi)))
+print("mean deviation theta (gt-mad): %.4f" % np.mean(np.abs((np_theta_gt - np_theta_mad)*180/pi)))
+print("mean deviation psi (gt-mad): %.4f" % np.mean(np.abs((np_psi_gt - np_psi_mad)*180/pi)))
+
+print("max deviation phi (gt-mad): %.4f" % np.max(np.abs((np_phi_gt - np_phi_mad)*180/pi)))
+print("max deviation theta (gt-mad): %.4f" % np.max(np.abs((np_theta_gt - np_theta_mad)*180/pi)))
+print("max deviation psi (gt-mad): %.4f" % np.max(np.abs((np_psi_gt - np_psi_mad)*180/pi)))
+
+print("RMS error phi: %.4f" % sqrt(mean_squared_error(np_phi_gt, np_phi_mad)))
+print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_theta_gt, np_theta_mad)))
+print("RMS error psi: %.4f" % sqrt(mean_squared_error(np_psi_gt, np_psi_mad)))
+
 
 # filtered data
 print("mean deviation phi (gt-kf_fil): %.4f" % np.mean(np.abs((np_phi_gt - phi_kf_fil)*180/pi)))
@@ -178,15 +302,18 @@ dictionary = {
     "psi_gt": np.asarray(psi_gt),
     "phi_kf_fil": np.asarray(phi_kf_fil),
     "theta_kf_fil": np.asarray(theta_kf_fil),
-    "psi_kf_fil": np.asarray(psi_kf_fil)
+    "psi_kf_fil": np.asarray(psi_kf_fil),
+    "phi_mad": np.asarray(phi_mad),
+    "theta_mad": np.asarray(theta_mad),
+    "psi_mad": np.asarray(psi_mad)
 }
 
 Path("./preds/").mkdir(parents=True, exist_ok=True)
 with open("./preds/" + "dict_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".pkl", 'wb') as f: pickle.dump(dictionary, f)
 times_list = [i for i in range(0, N)]
-plot_tensorboard(writer, [phi_kf, phi_gt, phi_kf_fil], ['b', 'r', 'g'], ['phi_kf', 'phi_gt', 'phi_kf_fil'])
+plot_tensorboard(writer, [phi_kf, phi_gt, phi_mad], ['b', 'r', 'g'], ['phi_kf', 'phi_gt', 'phi_mad'])
 # plot_tensorboard(writer, [phi_gt], ['r'], ['orient_phi'])
-plot_tensorboard(writer, [theta_kf, theta_gt, theta_kf_fil], ['b', 'r', 'g'], ['theta_kf', 'theta_gt', 'theta_kf_fil'])
+plot_tensorboard(writer, [theta_kf, theta_gt, theta_mad], ['b', 'r', 'g'], ['theta_kf', 'theta_gt', 'theta_mad'])
 # plot_tensorboard(writer, [theta_gt], ['r'], ['orient_theta'])
-plot_tensorboard(writer, [psi_kf, psi_gt, psi_kf_fil], ['b', 'r', 'g'], ['psi_kf', 'psi_gt', 'psi_kf_fil'])
+plot_tensorboard(writer, [psi_kf, psi_gt, psi_mad], ['b', 'r', 'g'], ['psi_kf', 'psi_gt', 'psi_mad'])
 writer.close()
