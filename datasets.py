@@ -114,6 +114,14 @@ class OXFDataset(Dataset):
         roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w)
         return roll, pitch, yaw
 
+    def get_quat_groundt(self, n):   # METODO  
+        # pose in quaternion
+        x = self.gt_mat[n, 5]
+        y = self.gt_mat[n, 6]
+        z = self.gt_mat[n, 7]
+        w = self.gt_mat[n, 8]
+        return float(x), float(y), float(z), float(w)
+
 
 class datasetMatlabIMU(Dataset):
 
