@@ -1,7 +1,5 @@
-# Kalman Filter Implementation for MPU-6050 6DOF IMU
-#
-# Author: Philip Salmony [pms67@cam.ac.uk]
-# Riadaptation
+# this is a riadaptation of the code found in this page:
+# https://github.com/MarkSherstan/MPU-6050-9250-I2C-CompFilter/tree/master/9DOF
 
 from datasets import *
 from datasets import butter_lowpass, butter_lowpass_filter
@@ -10,7 +8,8 @@ import pickle
 import io
 import argparse
 import math
-from math import sin, cos, tan, pi, atan2, sqrt 
+from math import sin, cos, tan, pi, atan2, sqrt
+import quat2eul_functions 
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 import matplotlib.pyplot as plt
