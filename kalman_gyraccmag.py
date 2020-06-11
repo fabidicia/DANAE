@@ -67,9 +67,7 @@ R = np.eye(3)
 
 state_estimate = np.array([[0], [0], [0], [0], [0], [0]])   # roll, roll bias, pitch, pitch bias, yaw, yaw bias
 
-phi_hat = 0.0
-theta_hat = 0.0
-psi_hat = 0.0
+phi_hat, theta_hat, psi_hat = imu.get_ang_groundt(0) ## INITIALIZE TO TRUE GT VALUES!
 
 phi_kf = []
 theta_kf = []
@@ -107,7 +105,7 @@ for i in range(N):
     [phi_acc, theta_acc, psi_acc] = imu.get_acc_angles(i)
     # Calculate psi on the basis of mag data and phi and theta derived from acc (STILL CALLED ACC FOR EASY READING)
     psi_acc = atan2((-my*cos(phi_hat) + mz*sin(phi_hat)), (mx*cos(theta_hat) + my*sin(theta_hat)*sin(phi_hat) + mz*sin(theta_hat)*cos(phi_hat)))
-    psi_acc *= .0073    # con questo coefficiente la stima è più veritiera
+#    psi_acc -= 3    # con questo coefficiente la stima è più veritiera
 
     # calculate Euler angle derivatives from gyro measurements
     phi_dot = (p + sin(phi_hat) * tan(theta_hat) * q + cos(phi_hat) * tan(theta_hat) * r)
@@ -254,5 +252,5 @@ plot_tensorboard(writer, [phi_kf, phi_gt, phi_kf_fil], ['b', 'r', 'g'], ['phi_kf
 # plot_tensorboard(writer, [phi_gt], ['r'], ['orient_phi'])
 plot_tensorboard(writer, [theta_kf, theta_gt, theta_kf_fil], ['b', 'r', 'g'], ['theta_kf', 'theta_gt', 'theta_kf_fil'])
 # plot_tensorboard(writer, [theta_gt], ['r'], ['orient_theta'])
-plot_tensorboard(writer, [psi_kf, theta_gt, psi_kf_fil], ['b', 'r', 'g'], ['psi_kf', 'psi_gt', 'psi_kf_fil'])
+plot_tensorboard(writer, [psi_kf, psi_gt, psi_kf_fil], ['b', 'r', 'g'], ['psi_kf', 'psi_gt', 'psi_kf_fil'])
 writer.close()
