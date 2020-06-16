@@ -26,7 +26,6 @@ def butter_lowpass_filter(data, cutoff, fs, order):
     return fil
 
 def interp_resize(arr,new_length): #https://stackoverflow.com/questions/32724546/numpy-interpolation-to-increase-a-vector-size
-    import pdb; pdb.set_trace()
     if len(arr.shape) == 1:
         arr = arr[...,None] ##add new fake column
     L = []
@@ -55,7 +54,6 @@ class Aqua(Dataset):
 
         self.gtpath = "./data/Aqualoc/archaeo_gt/colmap_traj_sequence_5.txt"
         gt_iter = [x.split(' ') for x in open(self.gtpath).readlines()]
-#        import pdb; pdb.set_trace()
         gtlist = [line for line in gt_iter]
         gtlist.pop(0)  # rimuovo il primo elemento della lista visto che non contiene numeri!
         # ho convertito la lista di liste in una matrice

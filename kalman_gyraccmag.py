@@ -4,7 +4,6 @@
 # Riadaptation
 
 from datasets import *
-from datasets import butter_lowpass, butter_lowpass_filter
 import numpy as np
 import pickle
 import io
@@ -21,16 +20,16 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--dataset', type=str, required=True)
-parser.add_argument('--path', type=str, required=True)
+parser.add_argument('--path', type=str, default="boh")
 parser.add_argument('--gtpath', type=str)# solo per Aqua dataset
 parser.add_argument('--Q', type=float, default=1)   # 0.45
 parser.add_argument('--P', type=float, default=1)   # 0.1
 
 args = parser.parse_args()
-
 if args.dataset == "oxford":
     imu = OXFDataset(path=args.path)
 elif args.dataset == "aqua":
+    args.path="./data/Aqualoc/imu_sequence_5.csv"
     imu = Aqua()
 elif args.dataset == "matlab":
     imu = datasetMatlabIMU()
@@ -105,7 +104,6 @@ for i in range(N):
     mx = (mx/m_norm)
     my = (my/m_norm)
     mz = (mz/m_norm)
-    # import pdb; pdb.set_trace()
     # Get accelerometer measurements
     [phi_acc, theta_acc, psi_acc] = imu.get_acc_angles(i)
     # Calculate psi on the basis of mag data and phi and theta derived from acc (STILL CALLED ACC FOR EASY READING)
