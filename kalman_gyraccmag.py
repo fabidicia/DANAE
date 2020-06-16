@@ -31,8 +31,7 @@ args = parser.parse_args()
 if args.dataset == "oxford":
     imu = OXFDataset(path=args.path)
 elif args.dataset == "aqua":
-    imu = Aqua(path=args.path)
-
+    imu = Aqua()
 elif args.dataset == "matlab":
     imu = datasetMatlabIMU()
 elif args.dataset == "phils":   # not usable since it doesnt have orientation
