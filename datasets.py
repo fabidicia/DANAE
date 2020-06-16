@@ -18,6 +18,12 @@ def butter_lowpass(cutoff, fs, order):
     b, a = butter(order, normal_cutoff, btype='low', analog=False)
     return b, a
 
+def norm_angle(angle):
+    if angle <= 0:
+        angle = angle + 2*3.141
+    if angle >= 2*3.141:
+        angle = angle - 2*3.141
+    return angle
 
 def butter_lowpass_filter(data, cutoff, fs, order):
     b, a = butter_lowpass(cutoff, fs, order=order)
@@ -79,7 +85,7 @@ class Aqua(Dataset):
 
         Mx = float(self.mag_mat[i, 1])
         My = float(self.mag_mat[i, 2])
-        Mz = float(self.mag_mat[i, 3])
+        Mz = float(self.mag_mat[i, 3]) 
         return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
 
     def get_acc_angles(self, i):
@@ -169,9 +175,9 @@ class OXFDataset(Dataset):
         Az = gravz - accz
 
         # mag output resolution  0.3µT /LSB
-        Mx = float(self.imu_mat[i, 13])
-        My = float(self.imu_mat[i, 14])
-        Mz = float(self.imu_mat[i, 15])
+        Mx = float(self.imu_mat[i, 13])  #+ 80.0
+        My = float(self.imu_mat[i, 14])  #-10.0
+        Mz = float(self.imu_mat[i, 15])  #+100.0
         return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
 
     def get_acc_angles(self, i):
@@ -214,7 +220,8 @@ class OXFDataset(Dataset):
         z = self.gt_mat[n, 7]
         w = self.gt_mat[n, 8]
         roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w)
-        return roll, pitch, yaw
+        return roll, pitch, norm_angle(yaw)
+
 
     def get_quat_groundt(self, n):   # METODO  
         # pose in quaternion
@@ -223,6 +230,89 @@ class OXFDataset(Dataset):
         z = self.gt_mat[n, 7]
         w = self.gt_mat[n, 8]
         return float(x), float(y), float(z), float(w)
+
+class caves(Dataset):
+    def __init__(self, path="./data/caves/full_dataset/imu_adis.txt"):
+        self.path = path
+        with open(self.path) as imudata:
+            imu_iter = csv.reader(imudata)
+            imulist = [line for line in imu_iter]
+        imulist.pop(0) #rimuovo la prima riga che non contiene letture
+        self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
+
+        self.len = self.imu_mat.shape[0]
+
+    def __len__(self):
+        return self.len
+
+    def gettime(self, i):
+        time = self.imu_mat[i, 0]
+        return time
+
+    def __getitem__(self, i):
+        # gyro noise 4mdps/sqrt(Hz)
+        Gx = float(self.imu_mat[i, 17])
+        Gy = float(self.imu_mat[i, 18])
+        Gz = float(self.imu_mat[i, 19])
+        # gyro biases
+        bx = float(self.imu_mat[i, 20])
+        by = float(self.imu_mat[i, 21])
+        bz = float(self.imu_mat[i, 22])
+        # acc noise  100µg/sqrt(Hz)
+        accx = float(self.imu_mat[i, 14])
+        accy = float(self.imu_mat[i, 15])
+        accz = float(self.imu_mat[i, 16])
+
+        Ax =  accx
+        Ay = accy
+        Az = accz
+
+        # mag output resolution  0.3µT /LSB
+        Mx = float(self.imu_mat[i, 11])
+        My = float(self.imu_mat[i, 12])
+        Mz = float(self.imu_mat[i, 13])
+        return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
+
+    def get_acc_angles(self, i):
+        [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
+        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
+        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
+        psi = math.atan2(math.sqrt(ax ** 2.0 + ay ** 2.0), az)
+        return [phi, theta, psi]
+
+    def get_orient(self, i):   # METODO
+        roll = float(self.imu_mat[i, 3]) #* pi / 180.0
+        pitch = float(self.imu_mat[i, 4]) # * pi / 180.0
+        yaw = float(self.imu_mat[i, 5]) #* pi / 180.0
+        return roll, pitch, yaw
+
+    def quaternion_to_euler(self, x, y, z, w):
+        x, y, z, w = float(x), float(y), float(z), float(w)
+        t0 = +2.0 * (w * x + y * z)
+        t1 = +1.0 - 2.0 * (x * x + y * y)
+        roll = math.atan2(t0, t1)
+        t2 = +2.0 * (w * y - z * x)
+        t2 = +1.0 if t2 > +1.0 else t2
+        t2 = -1.0 if t2 < -1.0 else t2
+        pitch = math.asin(t2)
+        t3 = +2.0 * (w * z + x * y)
+        t4 = +1.0 - 2.0 * (y * y + z * z)
+        yaw = math.atan2(t3, t4)
+        return [roll, pitch, yaw]
+
+    def get_quat_groundt(self, n):   # METODO  
+        # pose in quaternion
+        x = self.imu_mat[n, 6]
+        y = self.imu_mat[n, 7]
+        z = self.imu_mat[n, 8]
+        w = self.imu_mat[n, 9]
+        return float(x), float(y), float(z), float(w)
+
+    def get_ang_groundt(self, n):   # METODO  
+        # pose in quaternion
+        x, y, z, w = self.get_quat_groundt(n)	
+        roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w)
+        return roll, pitch, yaw
 
 
 class datasetMatlabIMU(Dataset):
@@ -315,7 +405,8 @@ class DatasetPhils(Dataset):
         [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
         phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
         theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
-        return [phi, theta]
+        psi = math.atan2(math.sqrt(ax ** 2.0 + ay ** 2.0), az)
+        return [phi, theta, psi]
 
 
 class Dataset9250(Dataset):
@@ -365,7 +456,8 @@ class Dataset9250(Dataset):
         [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
         phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
         theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
-        return [phi, theta]
+        psi = math.atan2(math.sqrt(ax ** 2.0 + ay ** 2.0), az)
+        return [phi, theta, psi]
 
     def get_ang_groundt(self, i):   # METODO
         return self.get_orient(i)
