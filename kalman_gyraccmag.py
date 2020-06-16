@@ -21,7 +21,7 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--dataset', type=str, required=True)
-parser.add_argument('--path', type=str, default="boh")
+parser.add_argument('--path', type=str, default="None")
 parser.add_argument('--max_iter', type=str, default="None")
 parser.add_argument('--gtpath', type=str)# solo per Aqua dataset
 parser.add_argument('--Q', type=float, default=1)   # 0.45
@@ -31,11 +31,11 @@ args = parser.parse_args()
 if args.dataset == "oxford":
     imu = OXFDataset(path=args.path)
 elif args.dataset == "aqua":
-    args.path="./data/Aqualoc/imu_sequence_5.csv"
-    imu = Aqua()
+    args.path="./data/Aqualoc/imu_sequence_5.csv" if args.path == 'None' else args.path
+    imu = Aqua(args.path)
 elif args.dataset == "caves":
-    args.path="./data/caves/boh/boh"
-    imu = caves()
+    args.path="./data/caves/full_dataset/imu_adis.txt" if args.path == 'None' else args.path
+    imu = caves(args.path)
 elif args.dataset == "matlab":
     imu = datasetMatlabIMU()
 elif args.dataset == "phils":   # not usable since it doesnt have orientation
