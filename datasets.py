@@ -27,7 +27,7 @@ def butter_lowpass_filter(data, cutoff, fs, order):
 
 
 class Aqua(Dataset):
-    def __init__(self, path="./data/Aqualoc/archaeo_sequence_5_raw_data/raw_data/imu_sequence_5.csv"):
+    def __init__(self, path="./data/Aqualoc/imu_sequence_5.csv"):
         self.path = path
         with open(self.path) as imudata:
             imu_iter = csv.reader(imudata)
@@ -40,7 +40,7 @@ class Aqua(Dataset):
             self.imu_mat = np.array(imulist)
             self.mag_mat = np.array(maglist)
 
-        self.gtpath = "./data/Aqualoc/archaeo_groundtruth_files/archaeo_groundtruth_files/colmap_traj_sequence_5.txt"
+        self.gtpath = "./data/Aqualoc/archaeo_gt/colmap_traj_sequence_5.txt"
         gt_iter = [x.split(' ') for x in open(self.gtpath).readlines()]
 #        import pdb; pdb.set_trace()
         gtlist = [line for line in gt_iter]
