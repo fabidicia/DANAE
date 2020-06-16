@@ -93,7 +93,7 @@ phi_dot_list = []
 theta_dot_list = []
 psi_dot_list = []
 
-N = 169
+N = 5000
 print("Running...")
 
 for i in range(N):

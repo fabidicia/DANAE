@@ -32,7 +32,7 @@ def interp_resize(arr,new_length): #https://stackoverflow.com/questions/32724546
     for a in arr.T:
         old_indices = np.arange(0,len(a))
         new_indices = np.linspace(0,len(a)-1,new_length)
-        spl = UnivariateSpline(old_indices,a,k=5,s=0)
+        spl = UnivariateSpline(old_indices,a,k=1,s=0)
         new_array = spl(new_indices)
         L.append(new_array)
     result = np.asarray(L).T
@@ -115,8 +115,9 @@ class Aqua(Dataset):
         y = self.gt_mat[n, 5]
         z = self.gt_mat[n, 6]
         w = self.gt_mat[n, 7]
-        roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w)
-        return roll, pitch, yaw
+#        pitch, roll, yaw = self.quaternion_to_euler(x, y, z, w) #from Fabiana: change of coordinate w.r.t. usual roll-pitch-yaw!
+        roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w) 
+        return roll, -pitch, yaw
 
     def get_quat_groundt(self, n):   # METODO  
         # pose in quaternion
