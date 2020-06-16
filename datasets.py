@@ -10,7 +10,7 @@ import math
 from time import sleep
 import glob
 import pickle
-
+from scipy.interpolate import UnivariateSpline
 
 def butter_lowpass(cutoff, fs, order):
     nyq = 0.5 * fs
@@ -25,6 +25,19 @@ def butter_lowpass_filter(data, cutoff, fs, order):
 #    fil = lfilter(b, a, data)
     return fil
 
+def interp_resize(arr,new_length): #https://stackoverflow.com/questions/32724546/numpy-interpolation-to-increase-a-vector-size
+    import pdb; pdb.set_trace()
+    if len(arr.shape) == 1:
+        arr = arr[...,None] ##add new fake column
+    L = []
+    for a in arr.T:
+        old_indices = np.arange(0,len(a))
+        new_indices = np.linspace(0,len(a)-1,new_length)
+        spl = UnivariateSpline(old_indices,a,k=5,s=0)
+        new_array = spl(new_indices)
+        L.append(new_array)
+    result = np.asarray(L).T
+    return result
 
 class Aqua(Dataset):
     def __init__(self, path="./data/Aqualoc/imu_sequence_5.csv"):
@@ -47,7 +60,7 @@ class Aqua(Dataset):
         gtlist.pop(0)  # rimuovo il primo elemento della lista visto che non contiene numeri!
         # ho convertito la lista di liste in una matrice
         self.gt_mat = np.array(gtlist)
-
+        self.gt_mat = interp_resize(self.gt_mat,self.imu_mat.shape[0]) #resizing the original gt_mat to the correct imu_mat size! Missing points are obtained by interpolation
     # ho convertito la lista di liste in una matrice
         self.len = self.imu_mat.shape[0]
 
