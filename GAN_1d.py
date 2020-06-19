@@ -25,11 +25,13 @@ from networks import Generator, Discriminator, weights_init, GANLoss, update_lea
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', default=32, type=int, help='batch_size')
-parser.add_argument('--path', default="./data/preds/preds_theta_train_handheld/", help='full path of dataset')
+parser.add_argument('--path', default="./data/preds/slow_walking_train/", help='full path of dataset')
+parser.add_argument('--angle', default="theta", help='full path of dataset')
 parser.add_argument('--dataset', default="oxford", help='useless parameter')
 parser.add_argument('--lr', default=0.0002, type=float, help='lr')
 parser.add_argument('--lamb', default=10.0, type=float, help='lambda')
 parser.add_argument('--length', default=20,type=int, help='signal length')
+parser.add_argument('--epochs', default=1,type=int, help='number of epochs')
 
 args = parser.parse_args()
 print(args)
@@ -42,9 +44,9 @@ writer = SummaryWriter(exper_path)
 
 cudnn.benchmark = True
 
-dataset = Dataset_pred_for_GAN(seq_length=args.length,path=args.path)
+dataset = Dataset_pred_for_GAN(seq_length=args.length,path=args.path,angle=args.angle)
 test_path = args.path.replace("train","test")
-dataset_test = Dataset_pred_for_GAN(seq_length=args.length,path=test_path)
+dataset_test = Dataset_pred_for_GAN(seq_length=args.length,path=test_path,angle=args.angle)
 train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                                          shuffle=True, num_workers=0)
 test_dataloader = torch.utils.data.DataLoader(dataset_test, batch_size=32,
@@ -59,14 +61,15 @@ netD.apply(weights_init)
 netG.apply(weights_init)
 
 criterionGAN = GANLoss().to(device)
-criterionL1 = nn.L1Loss().to(device)
+criterionL1 = nn.MSELoss().to(device)
+#criterionL1 = nn.L1Loss().to(device)
 criterionMSE = nn.MSELoss().to(device)
 
 # setup optimizer
 optimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(0.5, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(0.5, 0.999))
 
-for epoch in range(100):
+def test(args,dataset_test,writer):
     # test
     avg_psnr = 0
     error_list = []
@@ -76,7 +79,7 @@ for epoch in range(100):
     gan_list = []
     with torch.no_grad():
         for i in range(0,len(dataset_test),args.length): #QUESTO DA IL PROBLEMA CHE SALTERO' ALCUNI SAMPLES DEL TEST SET, ANDRA' FIXATO
-            batch = dataset[i]
+            batch = dataset_test[i]
             real_a, real_b = batch[0].to(device, dtype=torch.float), batch[1].to(device, dtype=torch.float)
             real_a, real_b = real_a.view(1,1,-1), real_b.view(1,1,-1)
 
@@ -99,38 +102,37 @@ for epoch in range(100):
     print("RMS error gt-kf: %.4f" % sqrt(mean_squared_error(gt_list, kf_list)) )
     print("RMS error gt-GAN: %.4f" % sqrt(mean_squared_error(gt_list, gan_list)) )
     print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(test_dataloader)))
-    plot_tensorboard(writer,[gt_list, kf_list],['b','r'],Labels=["gt","kf"],Name="Image_kf")
-    plot_tensorboard(writer,[gt_list, gan_list],['b','r'],Labels=["gt","GAN"],Name="Image_GAN")
+    plot_tensorboard(writer,[gt_list, kf_list],['b','r'],Labels=[args.angle+"_gt",args.angle+"_kf"],Name="Image_kf")
+    plot_tensorboard(writer,[gt_list, gan_list],['b','r'],Labels=[args.angle+"_gt",args.angle+"_EnK"],Name="Image_GAN")
 
+
+for epoch in range(args.epochs):
+    test(args,dataset_test,writer)
     # train
     for i, batch in enumerate(train_dataloader, 1):
         # forward
         real_a, real_b = batch[0].to(device, dtype=torch.float), batch[1].to(device, dtype=torch.float)
         fake_b,fake_b_int = netG(real_a)
-        _,real_b_int = netG(real_b)
+#        _,real_b_int = netG(real_b)
 
         ######################
         # (1) Update D network
         ######################
 
-        optimizerD.zero_grad()
+#        optimizerD.zero_grad()
         
-        # train with fake
-        #fake_ab = torch.cat((real_a, fake_b), 1)
-        pred_fake = netD.forward(fake_b_int.detach())
-        loss_d_fake = criterionGAN(pred_fake, False)
+#        pred_fake = netD.forward(fake_b_int.detach())
+#        loss_d_fake = criterionGAN(pred_fake, False)
 
-        # train with real
-#        pred_real = netD.forward(real_ab)
-        pred_real = netD.forward(real_b_int)
-        loss_d_real = criterionGAN(pred_real, True)
+#        pred_real = netD.forward(real_b_int)
+#        loss_d_real = criterionGAN(pred_real, True)
         
         # Combined D loss
-        loss_d = (loss_d_fake + loss_d_real) * 0.5
+#        loss_d = (loss_d_fake + loss_d_real) * 0.5
 
-        loss_d.backward()
+#        loss_d.backward()
        
-        optimizerD.step()
+#        optimizerD.step()
 
         ######################
         # (2) Update G network
@@ -139,8 +141,8 @@ for epoch in range(100):
         optimizerG.zero_grad()
 
         # First, G(A) should fake the discriminator
-        pred_fake = netD.forward(fake_b_int)
-        loss_g_gan = criterionGAN(pred_fake, True)
+#        pred_fake = netD.forward(fake_b_int)
+#        loss_g_gan = criterionGAN(pred_fake, True)
 
         # Second, G(A) = B
         loss_g_l1 = criterionL1(fake_b, real_b) * args.lamb
@@ -151,8 +153,8 @@ for epoch in range(100):
 
         optimizerG.step()
         if i % 10 == 0:
-            print("===> Epoch[{}]({}/{}): Loss_D: {:.4f} Loss_G: {:.4f}".format(
-                  epoch, i, len(train_dataloader), loss_d.item(), loss_g.item()))
+            print("===> Epoch[{}]({}/{}): Loss_G: {:.4f}".format(
+                  epoch, i, len(train_dataloader), loss_g.item()))
 
 #    update_learning_rate(netG_scheduler, optimizerG)
 #    update_learning_rate(netD_scheduler, optimizerD)
@@ -170,3 +172,4 @@ for epoch in range(100):
         torch.save(netG, netG_model_out_path)
         torch.save(netD, netD_model_out_path)
         print("Checkpoint saved to {}".format("checkpoint" + args.dataset))
+test(args,dataset_test,writer)

@@ -231,10 +231,18 @@ Path("./preds/").mkdir(parents=True, exist_ok=True)
 with open("./preds/" + "dict_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".pkl", 'wb') as f: pickle.dump(dictionary, f)
 
 
-times_list = [i for i in range(0, args.max_iter)]
-plot_tensorboard(writer, [phi_kf, phi_gt, phi_kf_fil], ['b', 'r', 'g'], ['phi_kf', 'phi_gt', 'phi_kf_fil'])
+times_list = [i for i in range(0, 500)]
+
+#times_list = [i for i in range(0, args.max_iter)]
+plot_tensorboard(writer, [phi_kf, phi_gt], ['b', 'r'], ['phi_kf', 'phi_gt'])
 # plot_tensorboard(writer, [phi_gt], ['r'], ['orient_phi'])
-plot_tensorboard(writer, [theta_kf, theta_gt, theta_kf_fil], ['b', 'r', 'g'], ['theta_kf', 'theta_gt', 'theta_kf_fil'])
+plot_tensorboard(writer, [theta_kf, theta_gt], ['b', 'r'], ['theta_kf', 'theta_gt'])
 # plot_tensorboard(writer, [theta_gt], ['r'], ['orient_theta'])
-plot_tensorboard(writer, [psi_kf, psi_gt, psi_kf_fil], ['b', 'r', 'g'], ['psi_kf', 'psi_gt', 'psi_kf_fil'])
+plot_tensorboard(writer, [psi_kf, psi_gt], ['b', 'r'], ['psi_kf', 'psi_gt'])
+
+
+#times_list = [i for i in range(0, args.max_iter)]
+#plot_tensorboard(writer, [phi_kf, phi_gt, phi_kf_fil], ['b', 'r', 'g'], ['phi_kf', 'phi_gt', 'phi_kf_fil'])
+#plot_tensorboard(writer, [theta_kf, theta_gt, theta_kf_fil], ['b', 'r', 'g'], ['theta_kf', 'theta_gt', 'theta_kf_fil'])
+#plot_tensorboard(writer, [psi_kf, psi_gt, psi_kf_fil], ['b', 'r', 'g'], ['psi_kf', 'psi_gt', 'psi_kf_fil'])
 writer.close()

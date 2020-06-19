@@ -525,7 +525,9 @@ class DatasetPhi_gt_kf(Dataset):
         return torch.from_numpy(phi_kf).view(1,-1), torch.from_numpy(phi_gt).view(1,-1)
 	
 class Dataset_pred_for_GAN(Dataset):
-    def __init__(self, path = "./data/Oxio_Dataset/",seq_length=10):
+    def __init__(self, path = "./data/Oxio_Dataset/",seq_length=10,angle="theta"):
+        key_gt = angle+"_gt"
+        key_kf = angle+"_kf"
         files = glob.glob(path+"*.pkl")
         #files_gt = [file.replace("kf","gt") for file in files_kf]
         self.gt_list = []
@@ -533,8 +535,8 @@ class Dataset_pred_for_GAN(Dataset):
         for i in range(len(files)):
             with open(files[i], "rb") as f: dict = pickle.load(f) 
 
-            self.gt_list.append( dict["theta_gt"].squeeze()) ## I'M ASSUMING I WANNA WORK ONLY WITH THETA 
-            self.kf_list.append( dict["theta_kf"].squeeze()) #.squeeze per rimuovere unwanted extra dimensions
+            self.gt_list.append( dict[key_gt].squeeze()) ## I'M ASSUMING I WANNA WORK ONLY WITH THETA 
+            self.kf_list.append( dict[key_kf].squeeze()) #.squeeze per rimuovere unwanted extra dimensions
         self.gt = np.concatenate(self.gt_list, axis=0)
         self.kf = np.concatenate(self.kf_list, axis=0)
         self.valid_indexes = []
