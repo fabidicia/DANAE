@@ -102,7 +102,6 @@ class MyLSTMgru(nn.Module):
 # model = torch.nn.Sequential(lstm,
 #                            torch.nn.ReLU(),
 #                            torch.nn.Linear(3,3)) # fully connected layer
-# import pdb; pdb.set_trace() # mette i breakpoints
 # torch.cat(inputs).view(len(inputs), 1, 9) #se come terzo valore metto -1 funziona con tutto perchè chiedo a lui di farlo arbitrariamente
 
 
@@ -166,6 +165,54 @@ class Generator(nn.Module):
         self.relu = nn.ReLU(True)
         self.conv2 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
         self.conv3 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+        self.conv4 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+        self.conv5 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+
+        self.conv6 = nn.Conv1d(128,128,kernel_size=4,stride=1, padding=0,bias=True)
+        self.deconv1 = nn.ConvTranspose1d(128,128,kernel_size=4,stride=1, padding=0,bias=True)
+
+        self.deconv2 = nn.ConvTranspose1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+        self.deconv3 = nn.ConvTranspose1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+        self.deconv4 = nn.ConvTranspose1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+        self.deconv5 = nn.ConvTranspose1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+
+        self.conv1d = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv2d = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv3d = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv4d = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv5d = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv_final = nn.Conv1d(128,1,kernel_size=3,stride=1, padding=1,bias=True)
+
+##E SE APPLICASSI UN GRANDE RESIDUAL FRA INPUT E OUTPUT??
+    def forward(self, input):
+        #import pdb; pdb.set_trace()
+        out1 = self.relu(self.conv1(input))
+        out2 = self.relu(self.conv2(out1))
+        out3 = self.relu(self.conv3(out2))
+        out4 = self.relu(self.conv4(out3))
+        out5 = self.relu(self.conv5(out4))
+        out6 = self.relu(self.conv6(out5))
+        out_1 = self.relu(self.deconv1(out6))
+
+        out_11 = self.relu(self.conv1d(out_1 + out5))
+        out_2 = self.relu(self.deconv2(out_11))
+        out_22 = self.relu(self.conv2d(out_2 + out4))
+        out_3 = self.relu(self.deconv3(out_22))
+        out_33 = self.relu(self.conv3d(out_3 + out3))
+        out_4 = self.relu(self.deconv4(out_33))
+        out_44 = self.relu(self.conv4d(out_4 + out2))
+        out_5 = self.relu(self.deconv5(out_44))
+        out_55 = self.relu(self.conv5d(out_5+ out1))
+        out = self.conv_final(out_55)
+        return out, out4
+
+class Generator_bak(nn.Module):
+    def __init__(self):
+        super(Generator, self).__init__()
+        self.conv1 = nn.Conv1d(1,128,kernel_size=3,stride=1,padding=1, bias=True)
+        self.relu = nn.ReLU(True)
+        self.conv2 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
+        self.conv3 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
         self.conv4 = nn.Conv1d(128,128,kernel_size=3,dilation=6,stride=1, padding=1,bias=True)
 
         self.deconv1 = nn.ConvTranspose1d(128,128,kernel_size=3,dilation=6,stride=1, padding=1,bias=True)
@@ -175,10 +222,11 @@ class Generator(nn.Module):
         self.conv5 = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
         self.conv6 = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
         self.conv7 = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
-        self.conv_final = nn.Conv1d(128,1,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv_final = nn.Conv1d(128,1,kernel_size=4,stride=1, padding=1,bias=True)
 
 ##E SE APPLICASSI UN GRANDE RESIDUAL FRA INPUT E OUTPUT??
     def forward(self, input):
+        import pdb; pdb.set_trace()
         out1 = self.relu(self.conv1(input))
         out2 = self.relu(self.conv2(out1))
         out3 = self.relu(self.conv3(out2))
