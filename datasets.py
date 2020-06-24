@@ -533,7 +533,6 @@ class Dataset_pred_for_GAN(Dataset):
         self.kf_list = []
         for i in range(len(files)):
             with open(files[i], "rb") as f: dict = pickle.load(f) 
-
             self.gt_list.append( dict[key_gt].squeeze()) 
             self.kf_list.append( dict[key_kf].squeeze()) #.squeeze per rimuovere unwanted extra dimensions
         self.gt = np.concatenate(self.gt_list, axis=0)
@@ -560,6 +559,8 @@ class Dataset_pred_for_GAN(Dataset):
 
 class Dataset_GAN_2(Dataset):
     def __init__(self, path = "./data/Oxio_Dataset/",seq_length=10,angle="theta"):
+        files = glob.glob(path+"*.pkl")
+        shape_0 = []
         with open(files[0], "rb") as f: 
             self.dict = pickle.load(f)
         for key in self.dict.keys():
@@ -568,15 +569,16 @@ class Dataset_GAN_2(Dataset):
             with open(files[i], "rb") as f: f_dict = pickle.load(f) 
             for key in f_dict.keys():
                 self.dict[key].append(f_dict[key].squeeze()) 
+        shape_0 = [self.dict["theta_gt"][i].shape[0] for i in range(len(files))] #capturing all the .shape[0] of the matrices of the self.dict["theta_gt"] list
         for key in self.dict.keys():
             self.dict[key] = np.concatenate(self.dict[key], axis=0)
         self.valid_indexes = []
         acc = 0
         for i in range(len(files)):
-            mat_indexes = [j for j in range(self.dict["theta_kf"][i].shape[0]-seq_length)] #I could use any key of the dict for this, they are all the same legth
+            mat_indexes = [j for j in range(shape_0[i]-seq_length)] #
             mat_indexes = [elem + acc for elem in mat_indexes]
             self.valid_indexes += mat_indexes #sommare le liste vuol dire fare un append
-            acc += self.kf_list[i].shape[0]
+            acc += shape_0[i]
  
         self.len = len(self.valid_indexes)
         self.seq_length = seq_length

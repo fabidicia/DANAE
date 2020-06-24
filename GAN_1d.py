@@ -10,7 +10,7 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-from datasets import Dataset_pred_for_GAN
+from datasets import Dataset_pred_for_GAN, Dataset_GAN_2
 from math import log10, sqrt
 from sklearn.metrics import mean_squared_error
 import numpy as np
@@ -44,9 +44,11 @@ writer = SummaryWriter(exper_path)
 
 cudnn.benchmark = True
 
-dataset = Dataset_pred_for_GAN(seq_length=args.length,path=args.path,angle=args.angle.lower())
+#dataset = Dataset_pred_for_GAN(seq_length=args.length,path=args.path,angle=args.angle.lower())
+dataset = Dataset_GAN_2(seq_length=args.length,path=args.path,angle=args.angle.lower())
 test_path = args.path.replace("train","test")
-dataset_test = Dataset_pred_for_GAN(seq_length=args.length,path=test_path,angle=args.angle.lower())
+#dataset_test = Dataset_pred_for_GAN(seq_length=args.length,path=test_path,angle=args.angle.lower())
+dataset_test = Dataset_GAN_2(seq_length=args.length,path=test_path,angle=args.angle.lower())
 train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                                          shuffle=True, num_workers=0)
 test_dataloader = torch.utils.data.DataLoader(dataset_test, batch_size=32,
@@ -80,7 +82,8 @@ def test(args,dataset_test,writer):
     with torch.no_grad():
         for i in range(0,len(dataset_test),args.length): #QUESTO DA IL PROBLEMA CHE SALTERO' ALCUNI SAMPLES DEL TEST SET, ANDRA' FIXATO
             batch = dataset_test[i]
-            real_a, real_b = batch[0].to(device, dtype=torch.float), batch[1].to(device, dtype=torch.float)
+            real_a, real_b = batch[args.angle.lower()+"_kf"],batch[args.angle.lower()+"_gt"]
+            real_a, real_b = real_a.to(device, dtype=torch.float), real_b.to(device, dtype=torch.float)
             real_a, real_b = real_a.view(1,1,-1), real_b.view(1,1,-1)
 
             pred,_ = netG(real_a)
@@ -126,7 +129,9 @@ for epoch in range(args.epochs):
     # train
     for i, batch in enumerate(train_dataloader, 1):
         # forward
-        real_a, real_b = batch[0].to(device, dtype=torch.float), batch[1].to(device, dtype=torch.float)
+        real_a, real_b = batch[args.angle.lower()+"_kf"],batch[args.angle.lower()+"_gt"]
+        real_a, real_b = real_a.to(device, dtype=torch.float), real_b.to(device, dtype=torch.float)
+#        real_a, real_b = batch[0].to(device, dtype=torch.float), batch[1].to(device, dtype=torch.float)
         fake_b,fake_b_int = netG(real_a)
 #        _,real_b_int = netG(real_b)
 
