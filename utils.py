@@ -163,17 +163,20 @@ from PIL import Image
 from torchvision.transforms import ToTensor
 from random import randint
 
-def plot_tensorboard(writer,Datas, Lines, Labels,Name="Image"):
+def plot_tensorboard(writer,Datas, Lines, Labels,Name="Image",ylabel=None):
     rnd = randint(0,10000)
     if Name == "Image":
         Name = Name + str(rnd)
-    plt.figure(rnd)
+    plt.figure(rnd,figsize=(14,7))
         ## code to plot the image in tensorboard
     plt.title(Name)
+    if ylabel is not None:
+         plt.ylabel(ylabel)
+    plt.xlabel("Time [0.01s]")
     times = [i for i in range(len(Datas[0]))]
     for data,line,label in zip(Datas, Lines, Labels):
         plt.plot(times, data, line,label=label)
-        plt.legend(loc="right")
+        plt.legend(loc="lower right")
     plt.show()
     buf = io.BytesIO()
     plt.savefig(buf, format='png')
@@ -181,3 +184,23 @@ def plot_tensorboard(writer,Datas, Lines, Labels,Name="Image"):
     image = PIL.Image.open(buf)
     image = ToTensor()(image)
     writer.add_image(Name, image, 0)
+    plt.clf()
+    plt.cla()
+    plt.close()
+
+def move_to(obj, device):
+  if torch.is_tensor(obj):
+    return obj.to(device):
+  elif isinstance(obj, dict):
+    res = {}
+    for k, v in obj.items():
+      res[k] = move_to(v, device)
+    return res
+  elif isinstance(obj, list):
+    res = []
+    for v in obj:
+      res.append(move_to(v, device))
+    return res
+  else:
+    raise TypeError("Invalid type for move_to")
+
