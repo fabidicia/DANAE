@@ -44,9 +44,9 @@ writer = SummaryWriter(exper_path)
 
 cudnn.benchmark = True
 
-dataset = Dataset_pred_for_GAN(seq_length=args.length,path=args.path,angle=args.angle)
+dataset = Dataset_pred_for_GAN(seq_length=args.length,path=args.path,angle=args.angle.lower())
 test_path = args.path.replace("train","test")
-dataset_test = Dataset_pred_for_GAN(seq_length=args.length,path=test_path,angle=args.angle)
+dataset_test = Dataset_pred_for_GAN(seq_length=args.length,path=test_path,angle=args.angle.lower())
 train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
                                          shuffle=True, num_workers=0)
 test_dataloader = torch.utils.data.DataLoader(dataset_test, batch_size=32,
@@ -102,12 +102,27 @@ def test(args,dataset_test,writer):
     print("RMS error gt-kf: %.4f" % sqrt(mean_squared_error(gt_list, kf_list)) )
     print("RMS error gt-GAN: %.4f" % sqrt(mean_squared_error(gt_list, gan_list)) )
     print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(test_dataloader)))
-    plot_tensorboard(writer,[gt_list, kf_list],['b','r'],Labels=[args.angle+"_gt",args.angle+"_kf"],Name="Image_kf")
-    plot_tensorboard(writer,[gt_list, gan_list],['b','r'],Labels=[args.angle+"_gt",args.angle+"_EnK"],Name="Image_GAN")
+
+    kf_list = kf_list[10000:]
+    gt_list = gt_list[10000:]
+    gan_list = gan_list[10000:]
+    plot_tensorboard(writer,[kf_list[2500:5000], gt_list[2500:5000]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf1",ylabel=args.angle+" [rad]")
+    plot_tensorboard(writer,[gan_list[2500:5000], gt_list[2500:5000]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE1",ylabel=args.angle+" [rad]")
+
+    plot_tensorboard(writer,[kf_list[5000:7500], gt_list[5000:7500]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf2",ylabel=args.angle+" [rad]")
+    plot_tensorboard(writer,[gan_list[5000:7500], gt_list[5000:7500]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE2",ylabel=args.angle+" [rad]")
+
+    plot_tensorboard(writer,[kf_list[7500:10000], gt_list[7500:10000]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf3",ylabel=args.angle+" [rad]")
+    plot_tensorboard(writer,[gan_list[7500:10000], gt_list[7500:10000]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE3",ylabel=args.angle+" [rad]")
+
+    plot_tensorboard(writer,[kf_list[7500:10000], gt_list[10000:12500]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf4",ylabel=args.angle+" [rad]")
+    plot_tensorboard(writer,[gan_list[7500:10000], gt_list[10000:12500]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE4",ylabel=args.angle+" [rad]")
 
 
 for epoch in range(args.epochs):
+    netG.eval()
     test(args,dataset_test,writer)
+    netG.train()
     # train
     for i, batch in enumerate(train_dataloader, 1):
         # forward
@@ -152,7 +167,7 @@ for epoch in range(args.epochs):
         loss_g.backward()
 
         optimizerG.step()
-        if i % 10 == 0:
+        if i % 100 == 0:
             print("===> Epoch[{}]({}/{}): Loss_G: {:.4f}".format(
                   epoch, i, len(train_dataloader), loss_g.item()))
 
@@ -172,4 +187,5 @@ for epoch in range(args.epochs):
         torch.save(netG, netG_model_out_path)
         torch.save(netD, netD_model_out_path)
         print("Checkpoint saved to {}".format("checkpoint" + args.dataset))
+netG.eval()
 test(args,dataset_test,writer)

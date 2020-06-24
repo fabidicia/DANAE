@@ -35,7 +35,7 @@ elif args.dataset == "aqua":
     imu = Aqua(args.path)
 elif args.dataset == "caves":
     args.path="./data/caves/full_dataset/imu_adis.txt" if args.path == 'None' else args.path
-    imu = caves(args.path)
+    imu = caves(args.path,noise=True)
 elif args.dataset == "matlab":
     imu = datasetMatlabIMU()
 elif args.dataset == "phils":   # not usable since it doesnt have orientation

@@ -158,9 +158,9 @@ class YOLO_LSTM(nn.Module):
             out = self.fc(lstm_out)
             return out, hidden_state
 
-class Generator(nn.Module):
+class GeneratorBIG(nn.Module):
     def __init__(self):
-        super(Generator, self).__init__()
+        super(GeneratorBIG, self).__init__()
         self.conv1 = nn.Conv1d(1,128,kernel_size=3,stride=1,padding=1, bias=True)
         self.relu = nn.ReLU(True)
         self.conv2 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
@@ -185,7 +185,6 @@ class Generator(nn.Module):
 
 ##E SE APPLICASSI UN GRANDE RESIDUAL FRA INPUT E OUTPUT??
     def forward(self, input):
-        #import pdb; pdb.set_trace()
         out1 = self.relu(self.conv1(input))
         out2 = self.relu(self.conv2(out1))
         out3 = self.relu(self.conv3(out2))
@@ -206,7 +205,7 @@ class Generator(nn.Module):
         out = self.conv_final(out_55)
         return out, out4
 
-class Generator_bak(nn.Module):
+class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
         self.conv1 = nn.Conv1d(1,128,kernel_size=3,stride=1,padding=1, bias=True)
@@ -222,11 +221,10 @@ class Generator_bak(nn.Module):
         self.conv5 = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
         self.conv6 = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
         self.conv7 = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
-        self.conv_final = nn.Conv1d(128,1,kernel_size=4,stride=1, padding=1,bias=True)
+        self.conv_final = nn.Conv1d(128,1,kernel_size=3,stride=1, padding=1,bias=True)
 
 ##E SE APPLICASSI UN GRANDE RESIDUAL FRA INPUT E OUTPUT??
     def forward(self, input):
-        import pdb; pdb.set_trace()
         out1 = self.relu(self.conv1(input))
         out2 = self.relu(self.conv2(out1))
         out3 = self.relu(self.conv3(out2))

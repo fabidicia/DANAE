@@ -232,7 +232,7 @@ class OXFDataset(Dataset):
         return float(x), float(y), float(z), float(w)
 
 class caves(Dataset):
-    def __init__(self, path="./data/caves/full_dataset/imu_adis.txt"):
+    def __init__(self, path="./data/caves/full_dataset/imu_adis.txt", noise=False):
         self.path = path
         with open(self.path) as imudata:
             imu_iter = csv.reader(imudata)
@@ -241,7 +241,7 @@ class caves(Dataset):
         self.imu_mat = np.array(imulist)    # ho convertito la lista di liste in una matrice
 
         self.len = self.imu_mat.shape[0]
-
+        self.noise = noise
     def __len__(self):
         return self.len
 
@@ -251,9 +251,9 @@ class caves(Dataset):
 
     def __getitem__(self, i):
         # gyro noise 4mdps/sqrt(Hz)
-        Gx = float(self.imu_mat[i, 17])
-        Gy = float(self.imu_mat[i, 18])
-        Gz = float(self.imu_mat[i, 19])
+        Gx = float(self.imu_mat[i, 17]) if not self.noise  else float(self.imu_mat[i, 17]) + np.random.normal(0,0.5)
+        Gy = float(self.imu_mat[i, 18]) if not self.noise  else float(self.imu_mat[i, 18]) + np.random.normal(0,0.5)
+        Gz = float(self.imu_mat[i, 19]) if not self.noise  else float(self.imu_mat[i, 19]) + np.random.normal(0,0.5)
         # gyro biases
         bx = float(self.imu_mat[i, 20])
         by = float(self.imu_mat[i, 21])
@@ -263,9 +263,9 @@ class caves(Dataset):
         accy = float(self.imu_mat[i, 15])
         accz = float(self.imu_mat[i, 16])
 
-        Ax =  accx
-        Ay = accy
-        Az = accz
+        Ax =  accx if self.noise is False else accx+np.random.normal(0,0.5) 
+        Ay =  accy if self.noise is False else accy+np.random.normal(0,0.5) 
+        Az =  accz if self.noise is False else accz+np.random.normal(0,0.5) 
 
         # mag output resolution  0.3µT /LSB
         Mx = float(self.imu_mat[i, 11])
