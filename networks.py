@@ -159,9 +159,9 @@ class YOLO_LSTM(nn.Module):
             return out, hidden_state
 
 class GeneratorBIG(nn.Module):
-    def __init__(self):
+    def __init__(self,n_inputs=1):
         super(GeneratorBIG, self).__init__()
-        self.conv1 = nn.Conv1d(1,128,kernel_size=3,stride=1,padding=1, bias=True)
+        self.conv1 = nn.Conv1d(n_inputs,128,kernel_size=3,stride=1,padding=1, bias=True)
         self.relu = nn.ReLU(True)
         self.conv2 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
         self.conv3 = nn.Conv1d(128,128,kernel_size=3,dilation=3,stride=1, padding=1,bias=True)
