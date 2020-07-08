@@ -130,12 +130,13 @@ def test(args,dataset_test,writer):
 
     plot_tensorboard(writer,[kf_list[7500:10000], gt_list[10000:12500]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf4",ylabel=args.angle+" [rad]")
     plot_tensorboard(writer,[gan_list[7500:10000], gt_list[10000:12500]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE4",ylabel=args.angle+" [rad]")
+##fine della funzione di test
 
 
 for epoch in range(args.epochs):
-    netG.eval()
+    netG.eval() #before testing, always put your network in eval mode!
     test(args,dataset_test,writer)
-    netG.train()
+    netG.train() ##before training,always put your network in train mode!
     # train
     for i, batch in enumerate(train_dataloader, 1):
         # forward
