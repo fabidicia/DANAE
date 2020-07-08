@@ -56,7 +56,7 @@ test_dataloader = torch.utils.data.DataLoader(dataset_test, batch_size=32,
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-netG = GeneratorBIG().to(device)
+netG = GeneratorBIG(n_inputs=6).to(device)
 netD = Discriminator().to(device)
 
 netD.apply(weights_init)
@@ -82,11 +82,21 @@ def test(args,dataset_test,writer):
     with torch.no_grad():
         for i in range(0,len(dataset_test),args.length): #QUESTO DA IL PROBLEMA CHE SALTERO' ALCUNI SAMPLES DEL TEST SET, ANDRA' FIXATO
             batch = dataset_test[i]
-            real_a, real_b = batch[args.angle.lower()+"_kf"],batch[args.angle.lower()+"_gt"]
-            real_a, real_b = real_a.to(device, dtype=torch.float), real_b.to(device, dtype=torch.float)
-            real_a, real_b = real_a.view(1,1,-1), real_b.view(1,1,-1)
+            phi_acc = batch["phi_acc"]
+            theta_acc = batch["theta_acc"]
+            psi_acc = batch["psi_acc"]
+            phi_dot = batch["phi_dot"]
+            theta_dot = batch["theta_dot"]
+            psi_dot = batch["psi_dot"]
+            real_a = batch[args.angle.lower()+"_kf"]
+            real_a_stack = torch.cat([phi_acc,theta_acc,psi_acc,phi_dot,theta_dot,psi_dot],dim=0)
+            real_b = batch[args.angle.lower()+"_gt"]
 
-            pred,_ = netG(real_a)
+
+            real_a, real_a_stack, real_b = real_a.to(device, dtype=torch.float), real_a_stack.to(device, dtype=torch.float), real_b.to(device, dtype=torch.float)
+            real_a, real_a_stack, real_b = real_a[None,...], real_a_stack[None,...], real_b[None,...]
+
+            pred,_ = netG(real_a_stack)
             mse = criterionMSE(pred, real_b)
             psnr = 10 * log10(1 / mse.item())
             avg_psnr += psnr
@@ -129,7 +139,15 @@ for epoch in range(args.epochs):
     # train
     for i, batch in enumerate(train_dataloader, 1):
         # forward
-        real_a, real_b = batch[args.angle.lower()+"_kf"],batch[args.angle.lower()+"_gt"]
+        phi_acc = batch["phi_acc"]
+        theta_acc = batch["theta_acc"]
+        psi_acc = batch["psi_acc"]
+        phi_dot = batch["phi_dot"]
+        theta_dot = batch["theta_dot"]
+        psi_dot = batch["psi_dot"]
+        real_a = batch[args.angle.lower()+"_kf"]
+        real_a = torch.cat([phi_acc,theta_acc,psi_acc,phi_dot,theta_dot,psi_dot],dim=1)
+        real_b = batch[args.angle.lower()+"_gt"]
         real_a, real_b = real_a.to(device, dtype=torch.float), real_b.to(device, dtype=torch.float)
 #        real_a, real_b = batch[0].to(device, dtype=torch.float), batch[1].to(device, dtype=torch.float)
         fake_b,fake_b_int = netG(real_a)
