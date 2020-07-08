@@ -146,7 +146,7 @@ for epoch in range(args.epochs):
         phi_dot = batch["phi_dot"]
         theta_dot = batch["theta_dot"]
         psi_dot = batch["psi_dot"]
-        real_a = batch[args.angle.lower()+"_kf"]
+#        real_a = batch[args.angle.lower()+"_kf"]
         real_a = torch.cat([phi_acc,theta_acc,psi_acc,phi_dot,theta_dot,psi_dot],dim=1)
         real_b = batch[args.angle.lower()+"_gt"]
         real_a, real_b = real_a.to(device, dtype=torch.float), real_b.to(device, dtype=torch.float)
