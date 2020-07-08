@@ -94,7 +94,7 @@ def test(args,dataset_test,writer):
 
 
             real_a, real_a_stack, real_b = real_a.to(device, dtype=torch.float), real_a_stack.to(device, dtype=torch.float), real_b.to(device, dtype=torch.float)
-            real_a, real_a_stack, real_b = real_a[None,...], real_a_stack[None,...], real_b[None,...]
+            real_a, real_a_stack, real_b = real_a[None,...], real_a_stack[None,...], real_b[None,...] # se real_a era 6x20, ora diventa 1x6x20 grazie al trick [None,...]
 
             pred,_ = netG(real_a_stack)
             mse = criterionMSE(pred, real_b)
@@ -184,13 +184,13 @@ for epoch in range(args.epochs):
 #        loss_g_gan = criterionGAN(pred_fake, True)
 
         # Second, G(A) = B
-        loss_g_l1 = criterionL1(fake_b, real_b) * args.lamb
+        loss_g_l1 = criterionL1(fake_b, real_b) * args.lamb # se uso lr=0.001 e args.lamb 10 è la stessa cosa che 0.01 e args.lamb 1. Quindi args.lamb è un paarmetro ridondante!!
         
         loss_g = loss_g_l1 #+ loss_g_gan
         
-        loss_g.backward()
+        loss_g.backward() # calcolo dei gradienti
 
-        optimizerG.step()
+        optimizerG.step() # ottimizzazione rispetto al gradiente
         if i % 100 == 0:
             print("===> Epoch[{}]({}/{}): Loss_G: {:.4f}".format(
                   epoch, i, len(train_dataloader), loss_g.item()))
