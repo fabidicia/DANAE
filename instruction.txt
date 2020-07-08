@@ -1,0 +1,2 @@
+# To launch DANAE run the following line:
+CUDA_VISIBLE_DEVICES=0 python danae_ms.py --batch_size 16 --path ./data/preds/slow_walking_train/ --epochs 1 --lamb 100.0 --angle Phi
