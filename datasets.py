@@ -558,7 +558,45 @@ class Dataset_pred_for_GAN(Dataset):
         return torch.from_numpy(kf).view(1,-1), torch.from_numpy(gt).view(1,-1)
 
 class Dataset_GAN_2(Dataset):
-    def __init__(self, path = "./data/Oxio_Dataset/",seq_length=10,angle="theta"):
+    def __init__(self, path = "./data/Oxio_Dataset/", seq_length=10, angle="theta"):
+        files = glob.glob(path+"*.pkl")
+        shape_0 = []
+        with open(files[0], "rb") as f: 
+            self.dict = pickle.load(f)
+        for key in self.dict.keys():
+            self.dict[key] = []
+        for i in range(len(files)):
+            with open(files[i], "rb") as f: f_dict = pickle.load(f) 
+            for key in f_dict.keys():
+                self.dict[key].append(f_dict[key].squeeze()) 
+        shape_0 = [self.dict["theta_gt"][i].shape[0] for i in range(len(files))] #capturing all the .shape[0] of the matrices of the self.dict["theta_gt"] list
+        for key in self.dict.keys():
+            self.dict[key] = np.concatenate(self.dict[key], axis=0)
+        self.valid_indexes = []
+        acc = 0
+        for i in range(len(files)):
+            mat_indexes = [j for j in range(shape_0[i]-seq_length)] #
+            mat_indexes = [elem + acc for elem in mat_indexes]
+            self.valid_indexes += mat_indexes #sommare le liste vuol dire fare un append
+            acc += shape_0[i]
+ 
+        self.len = len(self.valid_indexes)
+        self.seq_length = seq_length
+
+    def __len__(self):
+        return self.len
+
+    def __getitem__(self, i):   # METODO
+        dictionary = dict.fromkeys(self.dict.keys(),None)
+        true_idx = self.valid_indexes[i] 
+        for key in self.dict.keys():
+            dictionary[key] = self.dict[key][true_idx:true_idx+self.seq_length]
+            dictionary[key] = torch.from_numpy(dictionary[key]).view(1,-1)
+        return dictionary
+
+
+class Dataset_GAN_3ang(Dataset):
+    def __init__(self, path = "./data/Oxio_Dataset/",seq_length=10,phi="phi", theta="theta", psi="psi"):
         files = glob.glob(path+"*.pkl")
         shape_0 = []
         with open(files[0], "rb") as f: 
