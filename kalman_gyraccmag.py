@@ -91,6 +91,12 @@ psi_acc_list = []
 p_list = []
 q_list = []
 r_list = []
+ax_list = []
+ay_list = []
+az_list = []
+mx_list = []
+my_list = []
+mz_list = []
 
 phi_dot_list = []
 theta_dot_list = []
@@ -101,7 +107,7 @@ args.max_iter = imu.len if args.max_iter == 'None' else int(args.max_iter)
 
 for i in range(args.max_iter):
     # Get gyro and mag measurements
-    [p, q, r, _, _, _, mx, my, mz] = imu.__getitem__(i)
+    [p, q, r, ax, ay, az, mx, my, mz] = imu.__getitem__(i)
     # normalize mag readings
     m_norm = sqrt((mx*mx)+(my*my)+(mz*mz))
     mx = (mx/m_norm)
@@ -148,6 +154,13 @@ for i in range(args.max_iter):
     p_list.append(p)
     q_list.append(q)
     r_list.append(r)
+    ax_list.append(ax)
+    ay_list.append(ay)
+    az_list.append(az)
+    mx_list.append(mx)
+    my_list.append(my)
+    mz_list.append(mz)
+
     phi_dot_list.append(phi_dot)
     theta_dot_list.append(theta_dot)
     psi_dot_list.append(theta_dot)
@@ -216,6 +229,12 @@ dictionary = {
     "p": np.asarray(p_list),
     "q": np.asarray(q_list),
     "r": np.asarray(r_list),
+    "ax": np.asarray(ax_list),
+    "ay": np.asarray(ay_list),
+    "az": np.asarray(az_list),
+    "mx": np.asarray(mx_list),
+    "my": np.asarray(my_list),
+    "mz": np.asarray(mz_list),
     "phi_dot": np.asarray(phi_dot_list),
     "theta_dot": np.asarray(theta_dot_list),
     "psi_dot": np.asarray(psi_dot_list),
