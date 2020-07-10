@@ -159,7 +159,7 @@ class YOLO_LSTM(nn.Module):
             return out, hidden_state
 
 class GeneratorBIG(nn.Module):
-    def __init__(self,n_inputs=1):
+    def __init__(self, n_inputs=1, n_outputs=3):
         super(GeneratorBIG, self).__init__()
         self.conv1 = nn.Conv1d(n_inputs,128,kernel_size=3,stride=1,padding=1, bias=True)
         self.relu = nn.ReLU(True)
@@ -181,7 +181,7 @@ class GeneratorBIG(nn.Module):
         self.conv3d = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
         self.conv4d = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
         self.conv5d = nn.Conv1d(128,128,kernel_size=3,stride=1, padding=1,bias=True)
-        self.conv_final = nn.Conv1d(128,1,kernel_size=3,stride=1, padding=1,bias=True)
+        self.conv_final = nn.Conv1d(128,n_outputs,kernel_size=3,stride=1, padding=1,bias=True)
 
 ##E SE APPLICASSI UN GRANDE RESIDUAL FRA INPUT E OUTPUT??
     def forward(self, input):

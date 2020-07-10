@@ -10,7 +10,8 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
-from datasets import Dataset_pred_for_GAN, Dataset_GAN_2
+from datasets import Dataset_GAN_3ang
+from datasets import *
 from math import log10, sqrt
 from sklearn.metrics import mean_squared_error
 import numpy as np
@@ -46,15 +47,25 @@ writer = SummaryWriter(exper_path)
 
 cudnn.benchmark = True
 
+#getting raw measurements
+if args.dataset == "oxford":
+    imu = OXFDataset(path=args.path)
+elif args.dataset == "aqua":
+    args.path = "./data/Aqualoc/imu_sequence_5.csv" if args.path == 'None' else args.path
+    imu = Aqua(args.path)
+elif args.dataset == "caves":
+    args.path = "./data/caves/full_dataset/imu_adis.txt" if args.path == 'None' else args.path
+    imu = caves(args.path,noise=True)
+
 #dataset = Dataset_pred_for_GAN(seq_length=args.length,path=args.path,angle=args.angle.lower())
-dataset = Dataset_GAN_2(seq_length=args.length,path=args.path,phi=args.phi.lower(),theta=args.theta.lower(),psi=args.psi.lower())
+dataset = Dataset_GAN_3ang(seq_length=args.length,path=args.path,phi=args.phi.lower(),theta=args.theta.lower(),psi=args.psi.lower())
 test_path = args.path.replace("train","test")
 #dataset_test = Dataset_pred_for_GAN(seq_length=args.length,path=test_path,angle=args.angle.lower())
-dataset_test = Dataset_GAN_2(seq_length=args.length,path=test_path,phi=args.phi.lower(),theta=args.theta.lower(),psi=args.psi.lower())
+dataset_test = Dataset_GAN_3ang(seq_length=args.length,path=test_path,phi=args.phi.lower(),theta=args.theta.lower(),psi=args.psi.lower())
 train_dataloader = torch.utils.data.DataLoader(dataset, batch_size=args.batch_size,
-                                         shuffle=True, num_workers=0)
+                                               shuffle=True, num_workers=0)
 test_dataloader = torch.utils.data.DataLoader(dataset_test, batch_size=32,
-                                         shuffle=False, num_workers=0)
+                                              shuffle=False, num_workers=0)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -84,60 +95,108 @@ def test(args,dataset_test,writer):
     with torch.no_grad():
         for i in range(0,len(dataset_test),args.length): #QUESTO DA IL PROBLEMA CHE SALTERO' ALCUNI SAMPLES DEL TEST SET, ANDRA' FIXATO
             batch = dataset_test[i]
+            Gx = batch["p"]
+            Gy = batch["q"]
+            Gz = batch["r"]
+            Ax = batch["ax"]
+            Ay = batch["ay"]
+            Az = batch["az"]
+            Mx = batch["mx"]
+            My = batch["my"]
+            Mz = batch["mz"]
+
             phi_acc = batch["phi_acc"]
             theta_acc = batch["theta_acc"]
             psi_acc = batch["psi_acc"]
             phi_dot = batch["phi_dot"]
             theta_dot = batch["theta_dot"]
             psi_dot = batch["psi_dot"]
-            real_phi = batch[args.phi.lower()+"_kf"]
-            real_theta = batch[args.theta.lower()+"_kf"]
-            real_psi = batch[args.psi.lower()+"_kf"]
-            real_phi_gt = batch[args.phi.lower()+"_gt"]
-            real_theta_gt = batch[args.theta.lower()+"_gt"]
-            real_psi_gt = batch[args.psi.lower()+"_gt"]
-            real_a = torch.cat([real_phi, real_theta, real_psi], dim=0)
-            real_a_stack = torch.cat([phi_acc, theta_acc, psi_acc, phi_dot, theta_dot, psi_dot], dim=0)
-            real_b = torch.cat([real_phi_gt, real_theta_gt, real_psi_gt], dim=0)
 
+            phi = batch["phi_kf"]
+            theta = batch["theta_kf"]
+            psi = batch["psi_kf"]
 
-            real_a, real_a_stack, real_b = real_a.to(device, dtype=torch.float), real_a_stack.to(device, dtype=torch.float), real_b.to(device, dtype=torch.float)
-            real_a, real_a_stack, real_b = real_a[None,...], real_a_stack[None,...], real_b[None,...] # se real_a era 6x20, ora diventa 1x6x20 grazie al trick [None,...]
+            phi_gt = batch["phi_gt"]
+            theta_gt = batch["theta_gt"]
+            psi_gt = batch["psi_gt"]
 
-            pred, _ = netG(real_a_stack)
-            mse = criterionMSE(pred, real_b)
+            a = torch.cat([phi, theta, psi], dim=0)
+            a_stack = torch.cat([phi_acc, theta_acc, psi_acc, phi_dot, theta_dot, psi_dot], dim=0)
+            raw = torch.cat([Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz], dim=0)
+            gt = torch.cat([phi_gt, theta_gt, psi_gt], dim=0)    #1st dim=0, 2nd dim=3, 3rd dim=length (20)
+
+            a, a_stack, gt = a.to(device, dtype=torch.float), a_stack.to(device, dtype=torch.float), gt.to(device, dtype=torch.float)
+            a, a_stack, gt = a[None, ...], a_stack[None, ...], gt[None, ...]    # se a era 6x20, ora diventa 1x6x20 grazie al trick [None,...]
+            pred, _ = netG(a_stack)
+            mse = criterionMSE(pred, gt)
             psnr = 10 * log10(1 / mse.item())
             avg_psnr += psnr
-            error_list.append(torch.mean(torch.abs(real_b - real_a)).item())
-            error_GAN_list.append(torch.mean(torch.abs(real_b - pred)).item())
-            gt_list += real_b[0,0,:].tolist()
-            kf_list += real_a[0,0,:].tolist()
-            gan_list += pred[0,0,:].tolist()
+            error_list.append(torch.mean(torch.abs(gt - a)).item())
+            error_GAN_list.append(torch.mean(torch.abs(gt - pred)).item())
+            gt_list += gt[0, :, :].tolist()     #3x20. gt_list[0] = prima colonna
+            kf_list += a[0, :, :].tolist()
+            gan_list += pred[0, :, :].tolist()
 
     print("mean error: " + str(mean(error_list)))
     print("mean GAN error: " + str(mean(error_GAN_list)))
-    print("mean deviation gt-kf: %.4f" % np.mean(np.abs(np.asarray(gt_list) - np.asarray(kf_list) )))
-    print("mean deviation gt-GAN: %.4f" % np.mean(np.abs(np.asarray(gt_list) - np.asarray(gan_list) )))
-    print("max deviation gt-kf: %.4f" % np.max(np.abs(np.asarray(gt_list) - np.asarray(kf_list) )))
-    print("max deviation gt-GAN: %.4f" % np.max(np.abs(np.asarray(gt_list) - np.asarray(gan_list) )))
-    print("RMS error gt-kf: %.4f" % sqrt(mean_squared_error(gt_list, kf_list)) )
-    print("RMS error gt-GAN: %.4f" % sqrt(mean_squared_error(gt_list, gan_list)) )
+    print("mean deviation gt-kf: %.4f" % np.mean(np.abs(np.asarray(gt_list) - np.asarray(kf_list))))
+    print("mean deviation gt-GAN: %.4f" % np.mean(np.abs(np.asarray(gt_list) - np.asarray(gan_list))))
+    print("max deviation gt-kf: %.4f" % np.max(np.abs(np.asarray(gt_list) - np.asarray(kf_list))))
+    print("max deviation gt-GAN: %.4f" % np.max(np.abs(np.asarray(gt_list) - np.asarray(gan_list))))
+    print("RMS error gt-kf: %.4f" % sqrt(mean_squared_error(gt_list, kf_list)))
+    print("RMS error gt-GAN: %.4f" % sqrt(mean_squared_error(gt_list, gan_list)))
     print("===> Avg. PSNR: {:.4f} dB".format(avg_psnr / len(test_dataloader)))
 
-    kf_list = kf_list[10000:]
-    gt_list = gt_list[10000:]
-    gan_list = gan_list[10000:]
-    plot_tensorboard(writer,[kf_list[2500:5000], gt_list[2500:5000]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf1",ylabel=args.angle+" [rad]")
-    plot_tensorboard(writer,[gan_list[2500:5000], gt_list[2500:5000]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE1",ylabel=args.angle+" [rad]")
+    phi_kf_list = kf_list[0]
+    theta_kf_list = kf_list[1]
+    psi_kf_list = kf_list[2]
+    phi_kf_list = phi_kf_list[10000:]
+    theta_kf_list = theta_kf_list[10000:]
+    psi_kf_list = psi_kf_list[10000:]
 
-    plot_tensorboard(writer,[kf_list[5000:7500], gt_list[5000:7500]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf2",ylabel=args.angle+" [rad]")
-    plot_tensorboard(writer,[gan_list[5000:7500], gt_list[5000:7500]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE2",ylabel=args.angle+" [rad]")
+    phi_gt_list = gt_list[0]
+    theta_gt_list = gt_list[1]
+    psi_gt_list = gt_list[2]
+    phi_gt_list = phi_gt_list[10000:]
+    theta_gt_list = theta_gt_list[10000:]
+    psi_gt_list = psi_gt_list[10000:]
 
-    plot_tensorboard(writer,[kf_list[7500:10000], gt_list[7500:10000]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf3",ylabel=args.angle+" [rad]")
-    plot_tensorboard(writer,[gan_list[7500:10000], gt_list[7500:10000]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE3",ylabel=args.angle+" [rad]")
+    phi_gan_list = gan_list[0]
+    theta_gan_list = gan_list[1]
+    psi_gan_list = gan_list[2]
+    phi_gt_list = phi_gan_list[10000:]
+    theta_gan_list = theta_gan_list[10000:]
+    psi_gan_list = psi_gan_list[10000:]
 
-    plot_tensorboard(writer,[kf_list[7500:10000], gt_list[10000:12500]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf4",ylabel=args.angle+" [rad]")
-    plot_tensorboard(writer,[gan_list[7500:10000], gt_list[10000:12500]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE4",ylabel=args.angle+" [rad]")
+
+    plot_tensorboard(writer, [phi_kf_list[2500:5000], phi_gt_list[2500:5000]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp2500:5000)",ylabel=args.phi+" [rad]")
+    plot_tensorboard(writer, [phi_gan_list[2500:5000], phi_gt_list[2500:5000]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp2500:5000)",ylabel=args.phi+" [rad]")
+    plot_tensorboard(writer, [theta_kf_list[2500:5000], theta_gt_list[2500:5000]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp2500:5000)",ylabel=args.theta+" [rad]")
+    plot_tensorboard(writer, [theta_gan_list[2500:5000], theta_gt_list[2500:5000]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp2500:5000)",ylabel=args.theta+" [rad]")
+    plot_tensorboard(writer, [psi_kf_list[2500:5000], psi_gt_list[2500:5000]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp2500:5000)",ylabel=args.psi+" [rad]")
+    plot_tensorboard(writer, [psi_gan_list[2500:5000], psi_gt_list[2500:5000]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp2500:5000)",ylabel=args.psi+" [rad]")
+
+    plot_tensorboard(writer, [phi_kf_list[5000:7500], phi_gt_list[5000:7500]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp5000:7500)",ylabel=args.phi+" [rad]")
+    plot_tensorboard(writer, [phi_gan_list[5000:7500], phi_gt_list[5000:7500]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp5000:7500)",ylabel=args.phi+" [rad]")
+    plot_tensorboard(writer, [theta_kf_list[5000:7500], theta_gt_list[5000:7500]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp5000:7500)",ylabel=args.theta+" [rad]")
+    plot_tensorboard(writer, [theta_gan_list[5000:7500], theta_gt_list[5000:7500]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp5000:7500)",ylabel=args.theta+" [rad]")
+    plot_tensorboard(writer, [psi_kf_list[5000:7500], psi_gt_list[5000:7500]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp5000:7500)",ylabel=args.psi+" [rad]")
+    plot_tensorboard(writer, [psi_gan_list[5000:7500], psi_gt_list[5000:7500]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp5000:7500)",ylabel=args.psi+" [rad]")
+
+    plot_tensorboard(writer, [phi_kf_list[7500:10000], phi_gt_list[7500:10000]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp7500:10000)",ylabel=args.phi+" [rad]")
+    plot_tensorboard(writer, [phi_gan_list[7500:10000], phi_gt_list[7500:10000]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp7500:10000)",ylabel=args.phi+" [rad]")
+    plot_tensorboard(writer, [theta_kf_list[7500:10000], theta_gt_list[7500:10000]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp7500:10000)",ylabel=args.theta+" [rad]")
+    plot_tensorboard(writer, [theta_gan_list[7500:10000], theta_gt_list[7500:10000]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp7500:10000)",ylabel=args.theta+" [rad]")
+    plot_tensorboard(writer, [psi_kf_list[7500:10000], psi_gt_list[7500:10000]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp7500:10000)",ylabel=args.psi+" [rad]")
+    plot_tensorboard(writer, [psi_gan_list[7500:10000], psi_gt_list[7500:10000]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp7500:10000)",ylabel=args.psi+" [rad]")
+
+    plot_tensorboard(writer, [phi_kf_list[10000:12500], phi_gt_list[10000:12500]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp10000:12500)",ylabel=args.phi+" [rad]")
+    plot_tensorboard(writer, [phi_gan_list[10000:12500], phi_gt_list[10000:12500]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp10000:12500)",ylabel=args.phi+" [rad]")
+    plot_tensorboard(writer, [theta_kf_list[10000:12500], theta_gt_list[10000:12500]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp10000:12500)",ylabel=args.theta+" [rad]")
+    plot_tensorboard(writer, [theta_gan_list[10000:12500], theta_gt_list[10000:12500]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp10000:12500)",ylabel=args.theta+" [rad]")
+    plot_tensorboard(writer, [psi_kf_list[10000:12500], psi_gt_list[10000:12500]], ['r', 'b'], Labels=["Ground truth", "Kalman filter estimation"],Name="Image_kf1(samp10000:12500)",ylabel=args.psi+" [rad]")
+    plot_tensorboard(writer, [psi_gan_list[10000:12500], psi_gt_list[10000:12500]], ['r', 'b'], Labels=["Ground truth", "DANAE estimation"],Name="Image_DANAE1(samp10000:12500)",ylabel=args.psi+" [rad]")
+
 ##fine della funzione di test
 
 
@@ -154,13 +213,20 @@ for epoch in range(args.epochs):
         phi_dot = batch["phi_dot"]
         theta_dot = batch["theta_dot"]
         psi_dot = batch["psi_dot"]
-#        real_a = batch[args.angle.lower()+"_kf"]
-        real_a = torch.cat([phi_acc,theta_acc,psi_acc,phi_dot,theta_dot,psi_dot],dim=1)
-        real_b = batch[args.angle.lower()+"_gt"]
-        real_a, real_b = real_a.to(device, dtype=torch.float), real_b.to(device, dtype=torch.float)
-#        real_a, real_b = batch[0].to(device, dtype=torch.float), batch[1].to(device, dtype=torch.float)
-        fake_b,fake_b_int = netG(real_a)
-#        _,real_b_int = netG(real_b)
+#        a = batch[args.angle.lower()+"_kf"]
+        a = torch.cat([phi_acc, theta_acc, psi_acc, phi_dot, theta_dot, psi_dot],dim=1)
+
+        phi_gt = batch["phi_gt"]
+        theta_gt = batch["theta_gt"]
+        psi_gt = batch["psi_gt"]
+        gt = torch.cat([phi_gt, theta_gt, psi_gt], dim=1)    #1st dim=0, 2nd dim=3, 3rd dim=length (20)
+        #gt = batch[args.angle.lower()+"_gt"]
+        a, gt = a.to(device, dtype=torch.float), gt.to(device, dtype=torch.float)
+#        a, gt = batch[0].to(device, dtype=torch.float), batch[1].to(device, dtype=torch.float)
+        fake_b, fake_b_int = netG(a)
+#        _,gt_int = netG(gt)
+
+        # import pdb; pdb.set_trace()
 
         ######################
         # (1) Update D network
@@ -171,7 +237,7 @@ for epoch in range(args.epochs):
 #        pred_fake = netD.forward(fake_b_int.detach())
 #        loss_d_fake = criterionGAN(pred_fake, False)
 
-#        pred_real = netD.forward(real_b_int)
+#        pred_real = netD.forward(gt_int)
 #        loss_d_real = criterionGAN(pred_real, True)
         
         # Combined D loss
@@ -192,7 +258,7 @@ for epoch in range(args.epochs):
 #        loss_g_gan = criterionGAN(pred_fake, True)
 
         # Second, G(A) = B
-        loss_g_l1 = criterionL1(fake_b, real_b) * args.lamb # se uso lr=0.001 e args.lamb 10 è la stessa cosa che 0.01 e args.lamb 1. Quindi args.lamb è un paarmetro ridondante!!
+        loss_g_l1 = criterionL1(fake_b, gt) * args.lamb # se uso lr=0.001 e args.lamb 10 è la stessa cosa che 0.01 e args.lamb 1. Quindi args.lamb è un paarmetro ridondante!!
         
         loss_g = loss_g_l1 #+ loss_g_gan
         
