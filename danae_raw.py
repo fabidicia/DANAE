@@ -59,7 +59,7 @@ test_dataloader = torch.utils.data.DataLoader(dataset_test, batch_size=32,
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-netG = GeneratorBIG(n_inputs=6).to(device)
+netG = GeneratorBIG(n_inputs=9).to(device)
 netD = Discriminator().to(device)
 
 netD.apply(weights_init)
@@ -117,7 +117,7 @@ def test(args,dataset_test,writer):
 
             a, a_stack, gt = a.to(device, dtype=torch.float), a_stack.to(device, dtype=torch.float), gt.to(device, dtype=torch.float)
             a, a_stack, gt = a[None, ...], a_stack[None, ...], gt[None, ...]    # se a era 6x20, ora diventa 1x6x20 grazie al trick [None,...]
-            pred, _ = netG(a_stack)
+            pred, _ = netG(raw)
             mse = criterionMSE(pred, gt)
             psnr = 10 * log10(1 / mse.item())
             avg_psnr += psnr
@@ -215,15 +215,16 @@ for epoch in range(args.epochs):
         psi_dot = batch["psi_dot"]
 #        a = batch[args.angle.lower()+"_kf"]
         a = torch.cat([phi_acc, theta_acc, psi_acc, phi_dot, theta_dot, psi_dot],dim=1)
+        raw = torch.cat([Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz], dim=1)
 
         phi_gt = batch["phi_gt"]
         theta_gt = batch["theta_gt"]
         psi_gt = batch["psi_gt"]
         gt = torch.cat([phi_gt, theta_gt, psi_gt], dim=1)    #1st dim=0, 2nd dim=3, 3rd dim=length (20)
         #gt = batch[args.angle.lower()+"_gt"]
-        a, gt = a.to(device, dtype=torch.float), gt.to(device, dtype=torch.float)
+        raw, gt = raw.to(device, dtype=torch.float), gt.to(device, dtype=torch.float)
 #        a, gt = batch[0].to(device, dtype=torch.float), batch[1].to(device, dtype=torch.float)
-        fake_b, fake_b_int = netG(a)
+        fake_b, fake_b_int = netG(raw)
 #        _,gt_int = netG(gt)
 
         # import pdb; pdb.set_trace()

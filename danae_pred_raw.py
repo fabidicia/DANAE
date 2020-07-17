@@ -59,7 +59,7 @@ test_dataloader = torch.utils.data.DataLoader(dataset_test, batch_size=32,
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-netG = GeneratorBIG(n_inputs=6).to(device)
+netG = GeneratorBIG(n_inputs=15).to(device)
 netD = Discriminator().to(device)
 
 netD.apply(weights_init)
@@ -111,8 +111,8 @@ def test(args,dataset_test,writer):
             psi_gt = batch["psi_gt"]
 
             a = torch.cat([phi, theta, psi], dim=0)
-            a_stack = torch.cat([phi_acc, theta_acc, psi_acc, phi_dot, theta_dot, psi_dot], dim=0)
-            raw = torch.cat([Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz], dim=0)
+            a_stack = torch.cat([phi_acc, theta_acc, psi_acc, phi_dot, theta_dot, psi_dot, Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz], dim=0)
+            #raw = torch.cat([Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz], dim=0)
             gt = torch.cat([phi_gt, theta_gt, psi_gt], dim=0)    #1st dim=0, 2nd dim=3, 3rd dim=length (20)
 
             a, a_stack, gt = a.to(device, dtype=torch.float), a_stack.to(device, dtype=torch.float), gt.to(device, dtype=torch.float)
