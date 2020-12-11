@@ -38,7 +38,8 @@ parser.add_argument('--P', type=float, default=1)   # 0.1
 
 args = parser.parse_args()
 if args.dataset == "oxford":
-    imu = OXFDataset(path=args.path)
+    args.path="./data/Oxio_Dataset/handheld/data1/syn/imu1.csv" if args.path == 'None' else args.path
+    imu = OXFDataset(path=args.path) 
 elif args.dataset == "aqua":
     args.path="./data/Aqualoc/imu_sequence_5.csv" if args.path == 'None' else args.path
     imu = Aqua(args.path)
