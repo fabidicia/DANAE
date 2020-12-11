@@ -4,5 +4,6 @@ DANAE is a deep Denoising AutoeNcoder for Attitude Estimation which works on Kal
 Further experiments will work on the Extended KF, improving also the architecture of the method.
 
 ### Links
-[Conference Paper]: https://arxiv.org/abs/2011.06853 
+[Conference Paper]: https://arxiv.org/abs/2011.06853
+
 Presented @ [Metrology for the Sea 2020]: http://www.metrosea.org/ms2020/ 
