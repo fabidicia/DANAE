@@ -10,7 +10,6 @@
 
 ################################# Various import #######################################
 from datasets import *
-from datasets import butter_lowpass, butter_lowpass_filter
 import numpy as np
 import pickle
 import io
@@ -161,7 +160,7 @@ for i in range(args.max_iter):
     phi_kf.append(phi_hat)
     theta_kf.append(theta_hat)
     psi_kf.append(psi_hat)  
-        phi_gt.append(roll)
+    phi_gt.append(roll)
     theta_gt.append(pitch)
     psi_gt.append(yaw)
     # other list appends:
