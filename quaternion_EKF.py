@@ -186,7 +186,7 @@ class System:
         self.v = self.xHat[3]
 
         quat = Quaternion(self.x, self.y, self.z, self.v)
-        e = quat.to_euler(degrees=True)
+        e = quat.to_euler(degrees=False)
         d = quat.to_dict()
         psi_hat = (e[0])
         theta_hat = (e[1])

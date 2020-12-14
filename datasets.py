@@ -201,11 +201,11 @@ class OXFDataset(Dataset):
         psi = math.atan2(math.sqrt(ax ** 2.0 + ay ** 2.0), az)
         return [phi, theta, psi]
 
-    def get_orient(self, i):   # METODO
-        roll = float(self.imu_mat[i, 1]) * pi / 180.0
-        pitch = float(self.imu_mat[i, 2]) * pi / 180.0
-        yaw = float(self.imu_mat[i, 3]) * pi / 180.0
-        return roll, pitch, yaw
+#    def get_orient(self, i):   # METODO
+#        roll = float(self.imu_mat[i, 1]) 
+#        pitch = float(self.imu_mat[i, 2]) 
+#        yaw = float(self.imu_mat[i, 3]) 
+#        return roll, pitch, yaw
 
     def quaternion_to_euler(self, x, y, z, w):
         x, y, z, w = float(x), float(y), float(z), float(w)
@@ -234,9 +234,6 @@ class OXFDataset(Dataset):
         z = self.gt_mat[n, 7]
         w = self.gt_mat[n, 8]
         roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w)
-        roll = roll * 180.0/pi
-        pitch = pitch * 180.0/pi
-        yaw = yaw * 180.0/pi
         return roll, pitch, norm_angle(yaw)
 
 
