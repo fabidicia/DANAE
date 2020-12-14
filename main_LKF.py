@@ -28,15 +28,17 @@ warnings.filterwarnings('ignore', category=FutureWarning)
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--dataset', type=str, required=True)
+parser.add_argument('--filter', type=str, default='lkf')
 parser.add_argument('--path', type=str, default="None")
 parser.add_argument('--max_iter', type=str, default="None")
 parser.add_argument('--gtpath', type=str)# solo per Aqua dataset
 parser.add_argument('--Q', type=float, default=1)   # 0.45
 parser.add_argument('--P', type=float, default=1)   # 0.1
+args = parser.parse_args()
+
+############################# Filter choice ###########################################
 
 ############################# Dataset choice ###########################################
-
-args = parser.parse_args()
 if args.dataset == "oxford":
     imu = OXFDataset(path=args.path)
 elif args.dataset == "aqua":
@@ -45,6 +47,7 @@ elif args.dataset == "aqua":
 elif args.dataset == "caves":
     args.path="./data/caves/full_dataset/imu_adis.txt" if args.path == 'None' else args.path
     imu = caves(args.path,noise=True)
+     ####LA MODIFICA GRAD TYPE VA FATTA ANCHE PER CAVES!!
 elif args.dataset == "matlab":
     imu = datasetMatlabIMU()
 elif args.dataset == "phils":   # not usable since it doesnt have orientation
