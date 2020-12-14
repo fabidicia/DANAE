@@ -192,5 +192,5 @@ class System:
         theta_hat = (e[1])
         phi_hat = (e[2])
         
-        return phi_hat, theta_hat, psi_hat # IN GRADI!
+        return phi_hat, theta_hat, psi_hat 
         #import pdb; pdb.set_trace()
