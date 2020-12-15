@@ -9,6 +9,8 @@
 
 
 ################################# Various import #######################################
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 from datasets import *
 import numpy as np
 import pickle
