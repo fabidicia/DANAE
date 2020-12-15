@@ -10,6 +10,8 @@
 
 ################################# Various import #######################################
 
+import os
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 import quaternion_EKF as ekf
 from datasets import *
 import numpy as np
@@ -33,15 +35,13 @@ parser.add_argument('--dataset', type=str, required=True)
 parser.add_argument('--path', type=str, default="None")
 parser.add_argument('--max_iter', type=str, default="None")
 parser.add_argument('--gtpath', type=str)# solo per Aqua dataset
-parser.add_argument('--Q', type=float, default=1)   # 0.45
-parser.add_argument('--P', type=float, default=1)   # 0.1
 
 ############################# Dataset choice ###########################################
 
 args = parser.parse_args()
 if args.dataset == "oxford":
     #faccio una modifica
-    args.path = "./data/Oxio_Dataset/handheld/data3/syn/imu3.csv" if args.path == 'None' else args.path
+    args.path = "./data/Oxio_Dataset/slow walking/data1/syn/imu3.csv" if args.path == 'None' else args.path
     imu = OXFDataset(path=args.path) ##IN THIS CASE args.path IS REQUIRED
 elif args.dataset == "aqua":
     args.path="./data/Aqualoc/imu_sequence_5.csv" if args.path == 'None' else args.path
@@ -49,12 +49,6 @@ elif args.dataset == "aqua":
 elif args.dataset == "caves":
     args.path="./data/caves/full_dataset/imu_adis.txt" if args.path == 'None' else args.path
     imu = caves(args.path,noise=True)
-elif args.dataset == "matlab":
-    imu = datasetMatlabIMU()
-elif args.dataset == "phils":   # not usable since it doesnt have orientation
-    imu = DatasetPhils()
-elif args.dataset == "novedue":
-    imu = Dataset9250()
 
 ############################# Some settings ###########################################
 
@@ -77,18 +71,6 @@ az_list = []
 mx_list = []
 my_list = []
 mz_list = []
-
-#intermediate euler angles estimation
-
-    #obtained from gyro
-phi_dot_list = []
-theta_dot_list = []
-psi_dot_list = []
-
-    #obtained from accelerometer and magnetometer
-phi_acc_list = []
-theta_acc_list = []
-psi_acc_list = []
 
 #final outputs to be plotted
 phi_kf = []
@@ -176,17 +158,17 @@ np_mz = np.asarray(mz_list)
 
 ####################################### STATISTICS ########################################
 
-print("mean deviation phi (gt-kf): %.4f" % np.mean(np.abs((np_phi_gt - np_phi_kf)*pi/180)))
-print("mean deviation theta (gt-kf): %.4f" % np.mean(np.abs((np_theta_gt - np_theta_kf)*pi/180)))
-print("mean deviation psi (gt-kf): %.4f" % np.mean(np.abs((np_psi_gt - np_psi_kf)*pi/180)))
+print("mean deviation phi (gt-kf): %.4f" % np.mean(np.abs((np_phi_gt - np_phi_kf))))
+print("mean deviation theta (gt-kf): %.4f" % np.mean(np.abs((np_theta_gt - np_theta_kf))))
+print("mean deviation psi (gt-kf): %.4f" % np.mean(np.abs((np_psi_gt - np_psi_kf))))
 
-print("max deviation phi (gt-kf): %.4f" % np.max(np.abs((np_phi_gt - np_phi_kf)*pi/180)))
-print("max deviation theta (gt-kf): %.4f" % np.max(np.abs((np_theta_gt - np_theta_kf)*pi/180)))
-print("max deviation psi (gt-kf): %.4f" % np.max(np.abs((np_psi_gt - np_psi_kf)*pi/180)))
+print("max deviation phi (gt-kf): %.4f" % np.max(np.abs((np_phi_gt - np_phi_kf))))
+print("max deviation theta (gt-kf): %.4f" % np.max(np.abs((np_theta_gt - np_theta_kf))))
+print("max deviation psi (gt-kf): %.4f" % np.max(np.abs((np_psi_gt - np_psi_kf))))
 
-print("RMS error phi: %.4f" % sqrt(mean_squared_error(np_phi_gt, np_phi_kf)*pi/180))
-print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_theta_gt, np_theta_kf)*pi/180))
-print("RMS error psi: %.4f" % sqrt(mean_squared_error(np_psi_gt, np_psi_kf)*pi/180))
+print("RMS error phi: %.4f" % sqrt(mean_squared_error(np_phi_gt, np_phi_kf)))
+print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_theta_gt, np_theta_kf)))
+print("RMS error psi: %.4f" % sqrt(mean_squared_error(np_psi_gt, np_psi_kf)))
 
 
 ####################################### DICTIONARY ########################################

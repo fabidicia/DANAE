@@ -42,7 +42,7 @@ args = parser.parse_args()
 
 ############################# Dataset choice ###########################################
 if args.dataset == "oxford":
-    args.path = "./data/Oxio_Dataset/handheld/data3/syn/imu3.csv" if args.path == 'None' else args.path
+    args.path = "./data/Oxio_Dataset/slow walking/data1/syn/imu3.csv" if args.path == 'None' else args.path
     imu = OXFDataset(path=args.path)
 elif args.dataset == "aqua":
     args.path="./data/Aqualoc/imu_sequence_5.csv" if args.path == 'None' else args.path
@@ -51,12 +51,6 @@ elif args.dataset == "caves":
     args.path="./data/caves/full_dataset/imu_adis.txt" if args.path == 'None' else args.path
     imu = caves(args.path,noise=True)
      ####LA MODIFICA GRAD TYPE VA FATTA ANCHE PER CAVES!!
-elif args.dataset == "matlab":
-    imu = datasetMatlabIMU()
-elif args.dataset == "phils":   # not usable since it doesnt have orientation
-    imu = DatasetPhils()
-elif args.dataset == "novedue":
-    imu = Dataset9250()
 
 ############################# Some settings ###########################################
 
@@ -204,13 +198,13 @@ np_psi_dot = np.asarray(psi_dot_list)
 
 ####################################### STATISTICS ########################################
 
-print("mean deviation phi (gt-kf): %.4f" % np.mean(np.abs((np_phi_gt - np_phi_kf)*180/pi)))
-print("mean deviation theta (gt-kf): %.4f" % np.mean(np.abs((np_theta_gt - np_theta_kf)*180/pi)))
-print("mean deviation psi (gt-kf): %.4f" % np.mean(np.abs((np_psi_gt - np_psi_kf)*180/pi)))
+print("mean deviation phi (gt-kf): %.4f" % np.mean(np.abs((np_phi_gt - np_phi_kf))))
+print("mean deviation theta (gt-kf): %.4f" % np.mean(np.abs((np_theta_gt - np_theta_kf))))
+print("mean deviation psi (gt-kf): %.4f" % np.mean(np.abs((np_psi_gt - np_psi_kf))))
 
-print("max deviation phi (gt-kf): %.4f" % np.max(np.abs((np_phi_gt - np_phi_kf)*180/pi)))
-print("max deviation theta (gt-kf): %.4f" % np.max(np.abs((np_theta_gt - np_theta_kf)*180/pi)))
-print("max deviation psi (gt-kf): %.4f" % np.max(np.abs((np_psi_gt - np_psi_kf)*180/pi)))
+print("max deviation phi (gt-kf): %.4f" % np.max(np.abs((np_phi_gt - np_phi_kf))))
+print("max deviation theta (gt-kf): %.4f" % np.max(np.abs((np_theta_gt - np_theta_kf))))
+print("max deviation psi (gt-kf): %.4f" % np.max(np.abs((np_psi_gt - np_psi_kf))))
 
 print("RMS error phi: %.4f" % sqrt(mean_squared_error(np_phi_gt, np_phi_kf)))
 print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_theta_gt, np_theta_kf)))

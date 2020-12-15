@@ -21,6 +21,7 @@ from scipy.interpolate import UnivariateSpline
 
 
 ############################# Functions definition ######################################
+
 def euler_to_quaternion(roll, pitch, yaw):
 
     qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
@@ -51,99 +52,6 @@ def interp_resize(arr,new_length): #https://stackoverflow.com/questions/32724546
         L.append(new_array)
     result = np.asarray(L).T
     return result
-
-#######################################################################################
-# Aqualoc
-#######################################################################################
-class Aqua(Dataset):
-    def __init__(self, path="./data/Aqualoc/imu_sequence_5.csv"):
-        self.path = path
-        with open(self.path) as imudata:
-            imu_iter = csv.reader(imudata)
-            imulist = [line for line in imu_iter]
-            imulist.pop(0)  # rimuovo il primo elemento della lista visto che non contiene numeri!
-        with open(self.path.replace("imu", "mag")) as magdata:
-            mag_iter = csv.reader(magdata)
-            maglist = [line for line in mag_iter]
-            maglist.pop(0)  # rimuovo il primo elemento della lista visto che non contiene numeri!
-            self.imu_mat = np.array(imulist)
-            self.mag_mat = np.array(maglist)
-
-        self.gtpath = "./data/Aqualoc/archaeo_gt/colmap_traj_sequence_5.txt"
-        gt_iter = [x.split(' ') for x in open(self.gtpath).readlines()]
-        gtlist = [line for line in gt_iter]
-        gtlist.pop(0)  # rimuovo il primo elemento della lista visto che non contiene numeri!
-        # ho convertito la lista di liste in una matrice
-        self.gt_mat = np.array(gtlist)
-        self.gt_mat = interp_resize(self.gt_mat,self.imu_mat.shape[0]) #resizing the original gt_mat to the correct imu_mat size! Missing points are obtained by interpolation
-    # ho convertito la lista di liste in una matrice
-        self.len = self.imu_mat.shape[0]
-
-    def __len__(self):
-        return self.len
-
-    def gettime(self, i):
-        time = self.imu_mat[i, 0]
-        return time
-
-    def __getitem__(self, i):
-        Gx = float(self.imu_mat[i, 1])
-        Gy = float(self.imu_mat[i, 2])
-        Gz = float(self.imu_mat[i, 3])
-        Ax = float(self.imu_mat[i, 4])
-        Ay = float(self.imu_mat[i, 5])
-        Az = float(self.imu_mat[i, 6])
-
-        Mx = float(self.mag_mat[i, 1])
-        My = float(self.mag_mat[i, 2])
-        Mz = float(self.mag_mat[i, 3]) 
-        return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
-
-    def get_acc_angles(self, i):
-        [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
-        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
-        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
-        psi = math.atan2(math.sqrt(ax ** 2.0 + ay ** 2.0), az)
-        return [phi, theta, psi]
-
-    def quaternion_to_euler(self, x, y, z, w):
-        x, y, z, w = float(x), float(y), float(z), float(w)
-        t0 = +2.0 * (w * x + y * z)
-        t1 = +1.0 - 2.0 * (x * x + y * y)
-        roll = math.atan2(t0, t1)
-        t2 = +2.0 * (w * y - z * x)
-        t2 = +1.0 if t2 > +1.0 else t2
-        t2 = -1.0 if t2 < -1.0 else t2
-        pitch = math.asin(t2)
-        t3 = +2.0 * (w * z + x * y)
-        t4 = +1.0 - 2.0 * (y * y + z * z)
-        yaw = math.atan2(t3, t4)
-        return [roll, pitch, yaw]
-
-    def get_pl_groundt(self, n):   # METODO
-        transl_x = self.gt_mat[n, 1]
-        transl_y = self.gt_mat[n, 2]
-        transl_z = self.gt_mat[n, 3]
-        return transl_x, transl_y, transl_z
-
-    def get_ang_groundt(self, n):   # METODO  
-        # pose in quaternion
-        x = self.gt_mat[n, 4]
-        y = self.gt_mat[n, 5]
-        z = self.gt_mat[n, 6]
-        w = self.gt_mat[n, 7]
-#        pitch, roll, yaw = self.quaternion_to_euler(x, y, z, w) #from Fabiana: change of coordinate w.r.t. usual roll-pitch-yaw!
-        roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w) 
-        return roll, -pitch, yaw
-
-    def get_quat_groundt(self, n):   # METODO  
-        # pose in quaternion
-        x = self.gt_mat[n, 4]
-        y = self.gt_mat[n, 5]
-        z = self.gt_mat[n, 6]
-        w = self.gt_mat[n, 7]
-        return float(x), float(y), float(z), float(w)
-
 
 #######################################################################################
 #Oxio Dataset
@@ -219,7 +127,7 @@ class OXFDataset(Dataset):
         t3 = +2.0 * (w * z + x * y)
         t4 = +1.0 - 2.0 * (y * y + z * z)
         yaw = math.atan2(t3, t4)
-        return [roll, pitch, yaw]
+        return [roll, pitch, yaw] # in rad
 
     def get_pl_groundt(self, n):   # METODO
         transl_x = self.gt_mat[n, 2]
@@ -234,7 +142,7 @@ class OXFDataset(Dataset):
         z = self.gt_mat[n, 7]
         w = self.gt_mat[n, 8]
         roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w)
-        return roll, pitch, norm_angle(yaw)
+        return roll, pitch, yaw #norm_angle(yaw) - Removed NORM, it seems to work better on both (rmse = to published)
 
 
     def get_quat_groundt(self, n):   # METODO  
@@ -332,6 +240,99 @@ class caves(Dataset):
         x, y, z, w = self.get_quat_groundt(n)	
         roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w)
         return roll, pitch, yaw
+
+
+#######################################################################################
+# Aqualoc
+#######################################################################################
+class Aqua(Dataset):
+    def __init__(self, path="./data/Aqualoc/imu_sequence_5.csv"):
+        self.path = path
+        with open(self.path) as imudata:
+            imu_iter = csv.reader(imudata)
+            imulist = [line for line in imu_iter]
+            imulist.pop(0)  # rimuovo il primo elemento della lista visto che non contiene numeri!
+        with open(self.path.replace("imu", "mag")) as magdata:
+            mag_iter = csv.reader(magdata)
+            maglist = [line for line in mag_iter]
+            maglist.pop(0)  # rimuovo il primo elemento della lista visto che non contiene numeri!
+            self.imu_mat = np.array(imulist)
+            self.mag_mat = np.array(maglist)
+
+        self.gtpath = "./data/Aqualoc/archaeo_gt/colmap_traj_sequence_5.txt"
+        gt_iter = [x.split(' ') for x in open(self.gtpath).readlines()]
+        gtlist = [line for line in gt_iter]
+        gtlist.pop(0)  # rimuovo il primo elemento della lista visto che non contiene numeri!
+        # ho convertito la lista di liste in una matrice
+        self.gt_mat = np.array(gtlist)
+        self.gt_mat = interp_resize(self.gt_mat,self.imu_mat.shape[0]) #resizing the original gt_mat to the correct imu_mat size! Missing points are obtained by interpolation
+    # ho convertito la lista di liste in una matrice
+        self.len = self.imu_mat.shape[0]
+
+    def __len__(self):
+        return self.len
+
+    def gettime(self, i):
+        time = self.imu_mat[i, 0]
+        return time
+
+    def __getitem__(self, i):
+        Gx = float(self.imu_mat[i, 1])
+        Gy = float(self.imu_mat[i, 2])
+        Gz = float(self.imu_mat[i, 3])
+        Ax = float(self.imu_mat[i, 4])
+        Ay = float(self.imu_mat[i, 5])
+        Az = float(self.imu_mat[i, 6])
+
+        Mx = float(self.mag_mat[i, 1])
+        My = float(self.mag_mat[i, 2])
+        Mz = float(self.mag_mat[i, 3]) 
+        return Gx, Gy, Gz, Ax, Ay, Az, Mx, My, Mz
+
+    def get_acc_angles(self, i):
+        [_, _, _, ax, ay, az, _, _, _] = self.__getitem__(i)
+        phi = math.atan2(ay, math.sqrt(ax ** 2.0 + az ** 2.0))
+        theta = math.atan2(-ax, math.sqrt(ay ** 2.0 + az ** 2.0))
+        psi = math.atan2(math.sqrt(ax ** 2.0 + ay ** 2.0), az)
+        return [phi, theta, psi]
+
+    def quaternion_to_euler(self, x, y, z, w):
+        x, y, z, w = float(x), float(y), float(z), float(w)
+        t0 = +2.0 * (w * x + y * z)
+        t1 = +1.0 - 2.0 * (x * x + y * y)
+        roll = math.atan2(t0, t1)
+        t2 = +2.0 * (w * y - z * x)
+        t2 = +1.0 if t2 > +1.0 else t2
+        t2 = -1.0 if t2 < -1.0 else t2
+        pitch = math.asin(t2)
+        t3 = +2.0 * (w * z + x * y)
+        t4 = +1.0 - 2.0 * (y * y + z * z)
+        yaw = math.atan2(t3, t4)
+        return [roll, pitch, yaw]
+
+    def get_pl_groundt(self, n):   # METODO
+        transl_x = self.gt_mat[n, 1]
+        transl_y = self.gt_mat[n, 2]
+        transl_z = self.gt_mat[n, 3]
+        return transl_x, transl_y, transl_z
+
+    def get_ang_groundt(self, n):   # METODO  
+        # pose in quaternion
+        x = self.gt_mat[n, 4]
+        y = self.gt_mat[n, 5]
+        z = self.gt_mat[n, 6]
+        w = self.gt_mat[n, 7]
+#        pitch, roll, yaw = self.quaternion_to_euler(x, y, z, w) #from Fabiana: change of coordinate w.r.t. usual roll-pitch-yaw!
+        roll, pitch, yaw = self.quaternion_to_euler(x, y, z, w) 
+        return roll, -pitch, yaw
+
+    def get_quat_groundt(self, n):   # METODO  
+        # pose in quaternion
+        x = self.gt_mat[n, 4]
+        y = self.gt_mat[n, 5]
+        z = self.gt_mat[n, 6]
+        w = self.gt_mat[n, 7]
+        return float(x), float(y), float(z), float(w)
 
 
 #######################################################################################
