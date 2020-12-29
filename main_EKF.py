@@ -112,8 +112,10 @@ for i in range(args.max_iter):
     # filter call
     ekf_sys.predict(w, dt)
     psi_hat, theta_hat, phi_hat = ekf_sys.update(a, m)
-    phi_hat = -phi_hat
-    theta_hat = -theta_hat
+
+    if args.dataset == "oxford":
+        phi_hat = -phi_hat
+        theta_hat = -theta_hat
     
     #Ground truth
     roll, pitch, yaw = imu.get_ang_groundt(i)

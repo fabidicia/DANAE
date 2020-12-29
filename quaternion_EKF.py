@@ -3,6 +3,7 @@ from squaternion import Quaternion
 from scipy.spatial.transform import Rotation as R 
 from math import sin, cos, tan, pi, atan2, sqrt
 from math import *
+import argparse
 
 #######################################################################################
 #The followings are functions definitions of general and specific use
@@ -69,7 +70,23 @@ def quaternion_to_euler(x, y, z, v):
 #######################################################################################
 
 class System:
+
     def __init__(self):
+
+
+        ############################# Code call definition ######################################
+
+        parser = argparse.ArgumentParser("script to show i-value of IMU data")
+        parser.add_argument('--dataset', type=str, required=True)
+        args = parser.parse_args()
+        if args.dataset == "oxford":
+            self.accelReference = np.array([0, 0, -1]).transpose()
+
+        elif args.dataset == "caves":
+            self.accelReference = np.array([0, 0, 1]).transpose()
+
+        ############################# Dataset choice ###########################################
+
         quaternion = np.array([1, 0, 0, 0])     # Initial estimate of the quaternion
         bias = np.array([0, 0, 0])              # Initial estimate of the gyro bias
 
@@ -85,9 +102,13 @@ class System:
         self.xHatBar = None
         self.xHatPrev = None
         self.pBar = None
-        self.accelReference = np.array([0, 0, -1]).transpose()
+        #self.accelReference = np.array([0, 0, -1]).transpose()
+        # if choosing underwater, z NEEDS to be set as 1 being here underwater!
         self.magReference = np.array([0, 1, 0]).transpose()
         #values got from specific calibrations of Oxford Mag Data
+
+        #This allows to fix 2 directions of the reference frame, assuming that mag always
+        #points to the north (y) and acc always points to the center of the Earth (z)
         self.mag_Ainv = np.array([[ 0.05486116, -0.00011346, 0.00146397],
                                   [-0.00011346,  0.05951535,  0.00731025],
                                   [0.00146397,  0.00731025,  0.07483137]])
