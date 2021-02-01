@@ -1,4 +1,0 @@
-The data in this .csv file are recorded by an iPhone SE in different conditions. In this specific case, the phone was subjected to oscillations.
-The structure is as follows:
-
-Epochs, orient(roll, pitch, yaw), gyr(x, y, z), acc(x, y, z), mag(x, y, z) 

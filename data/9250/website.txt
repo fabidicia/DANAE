@@ -1,4 +1,0 @@
-https://github.com/adityanarayanan03/MPU9250/tree/master/testingKalmanFilter/testingOnTrueData
-
-The hypotetic order of the data is:
-roll, pitch, yaw - gyrx, gyry, gyrz - accx, accy, accz - magx, magy, magz
