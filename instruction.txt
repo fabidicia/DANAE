@@ -1,2 +1,6 @@
 # To launch DANAE run the following line:
 CUDA_VISIBLE_DEVICES=0 python danae_ms.py --batch_size 16 --path ./data/preds/slow_walking_train/ --epochs 1 --lamb 100.0 --angle Phi
+
+##to launch danae++ with 3 angles estimation:
+CUDA_VISIBLE_DEVICES=3 python danae2_3angles.py --input_type ekf_est_complete 
+--path ./data/preds/slow_walking_ekf_train
