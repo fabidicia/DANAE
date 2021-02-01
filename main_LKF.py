@@ -16,7 +16,6 @@ import numpy as np
 import pickle
 import io
 import argparse
-import pandas as pd
 from math import sin, cos, tan, pi, atan2, sqrt 
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
@@ -26,9 +25,6 @@ from sklearn.metrics import mean_squared_error
 from utils import plot_tensorboard
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
-from scipy.ndimage.filters import uniform_filter1d
-from scipy.signal import butter, lfilter
-from scipy.signal import freqs
 
 ############################# Code call definition ######################################
 
@@ -41,6 +37,8 @@ parser.add_argument('--gtpath', type=str)# solo per Aqua dataset
 parser.add_argument('--Q', type=float, default=1)   # 0.45
 parser.add_argument('--P', type=float, default=1)   # 0.1
 args = parser.parse_args()
+
+############################# Filter choice ###########################################
 
 ############################# Dataset choice ###########################################
 if args.dataset == "oxford":
@@ -157,6 +155,10 @@ for i in range(args.max_iter):
 
     roll, pitch, yaw = imu.get_ang_groundt(i)
 
+    if args.dataset == "caves":
+        psi_hat = 0.0
+        yaw = 0.0
+        psi_dot = 0.0
     ############################ LIST CREATION ########################################
 
     phi_kf.append(phi_hat)
@@ -178,7 +180,7 @@ for i in range(args.max_iter):
 
     phi_dot_list.append(phi_dot)
     theta_dot_list.append(theta_dot)
-    psi_dot_list.append(theta_dot)
+    psi_dot_list.append(psi_dot)
     phi_acc_list.append(phi_acc)
     theta_acc_list.append(theta_acc)
     psi_acc_list.append(psi_acc)
@@ -212,60 +214,6 @@ print("RMS error phi: %.4f" % sqrt(mean_squared_error(np_phi_gt, np_phi_kf)))
 print("RMS error theta: %.4f" % sqrt(mean_squared_error(np_theta_gt, np_theta_kf)))
 print("RMS error psi: %.4f" % sqrt(mean_squared_error(np_psi_gt, np_psi_kf)))
 
-############################# Butter Lowpass Filter ###########################################
-#https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
-# filter requirements
-def butter_lowpass(cutOff, fs, order=5):
-    nyq = 0.5 * fs
-    normalCutoff = cutOff / nyq
-    b, a = butter(order, normalCutoff, btype='low', analog = True)
-    return b, a
-
-def butter_lowpass_filter(data, cutOff, fs, order=4):
-    b, a = butter_lowpass(cutOff, fs, order=order)
-    y = lfilter(b, a, data)
-    return y
-
-cutOff = 5 #cutoff frequency in rad/s
-fs = 100 #sampling frequency in rad/s
-order = 20 #order of filter
-
-phi_kf_fil = butter_lowpass_filter(np_phi_kf, cutOff, fs, order)
-theta_kf_fil = butter_lowpass_filter(np_theta_kf, cutOff, fs, order)
-psi_kf_fil = butter_lowpass_filter(np_psi_kf, cutOff, fs, order)
-
-# filtered data statistics
-print("mean deviation phi (gt-kf_fil): %.4f" % np.mean(np.abs((np_phi_gt - phi_kf_fil))))
-print("mean deviation theta (gt-kf_fil): %.4f" % np.mean(np.abs((np_theta_gt - theta_kf_fil))))
-print("mean deviation psi (gt-kf_fil): %.4f" % np.mean(np.abs((np_psi_gt - psi_kf_fil))))
-
-print("max deviation phi (gt-kf_fil): %.4f" % np.max(np.abs((np_phi_gt - phi_kf_fil))))
-print("max deviation theta (gt-kf_fil): %.4f" % np.max(np.abs((np_theta_gt - theta_kf_fil))))
-print("max deviation psi (gt-kf_fil): %.4f" % np.max(np.abs((np_psi_gt - psi_kf_fil))))
-
-print("RMS error phi_fil: %.4f" % sqrt(mean_squared_error(np_phi_gt, phi_kf_fil)))
-print("RMS error theta_fil: %.4f" % sqrt(mean_squared_error(np_theta_gt, theta_kf_fil)))
-print("RMS error psi_fil: %.4f" % sqrt(mean_squared_error(np_psi_gt, psi_kf_fil)))
-
-########################## Cumulative moving average ##############
-# https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.uniform_filter1d.html
-N = 100000
-phi_kf_cumulative = uniform_filter1d(np_phi_kf, N, mode='nearest')
-theta_kf_cumulative = uniform_filter1d(np_theta_kf, N, mode='nearest')
-psi_kf_cumulative = uniform_filter1d(np_psi_kf, N, mode='nearest')
-
-print("mean deviation phi (gt-kf_cumulative): %.4f" % np.mean(np.abs((np_phi_gt - phi_kf_cumulative))))
-print("mean deviation theta (gt-kf_cumulative): %.4f" % np.mean(np.abs((np_theta_gt - theta_kf_cumulative))))
-print("mean deviation psi (gt-kf_cumulative): %.4f" % np.mean(np.abs((np_psi_gt - psi_kf_cumulative))))
-
-print("max deviation phi (gt-kf_cumulative): %.4f" % np.max(np.abs((np_phi_gt - phi_kf_cumulative))))
-print("max deviation theta (gt-kf_cumulative): %.4f" % np.max(np.abs((np_theta_gt - theta_kf_cumulative))))
-print("max deviation psi (gt-kf_cumulative): %.4f" % np.max(np.abs((np_psi_gt - psi_kf_cumulative))))
-
-print("RMS error phi_fil: %.4f" % sqrt(mean_squared_error(np_phi_gt, phi_kf_cumulative)))
-print("RMS error theta_fil: %.4f" % sqrt(mean_squared_error(np_theta_gt, theta_kf_cumulative)))
-print("RMS error psi_fil: %.4f" % sqrt(mean_squared_error(np_psi_gt, psi_kf_cumulative)))
-
 ####################################### DICTIONARY ########################################
 
 dictionary = {
@@ -290,12 +238,6 @@ dictionary = {
     "phi_acc": np.asarray(phi_acc_list),
     "theta_acc": np.asarray(theta_acc_list),
     "psi_acc": np.asarray(psi_acc_list),
-    "phi_kf_fil": np.asarray(phi_kf_fil),
-    "theta_kf_fil": np.asarray(theta_kf_fil),
-    "psi_kf_fil": np.asarray(psi_kf_fil),
-    "phi_kf_cumulative": np.asarray(phi_kf_cumulative),
-    "theta_kf_cumulative": np.asarray(theta_kf_cumulative),
-    "psi_kf_cumulative": np.asarray(psi_kf_cumulative),
 }
 
 Path("./preds/").mkdir(parents=True, exist_ok=True)

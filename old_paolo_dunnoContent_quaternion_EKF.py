@@ -85,15 +85,13 @@ class System:
         self.xHatBar = None
         self.xHatPrev = None
         self.pBar = None
-        self.accelReference = np.array([0.0, 0.0, -1]).transpose()
-        self.magReference = np.array([0.0, 1.0, 0.0]).transpose()
-
-
+        self.accelReference = np.array([0, 0, -1]).transpose()
+        self.magReference = np.array([0, 1, 0]).transpose()
         #values got from specific calibrations of Oxford Mag Data
-        self.mag_Ainv = np.array([[ 0.06593963, -0.00180578, 0.00122864], ##THESE VALUES ARE TRUE FOR slow walking imu1 and for -mx -my change!!
-                                  [-0.00180578,  0.07117247, 0.00833488],
-                                  [0.00122864, 0.00833488,  0.09235797]])
-        self.mag_b = np.array([-0.61502188, -9.92023636, -35.49618114]).transpose() 
+        self.mag_Ainv = np.array([[ 0.05486116, -0.00011346, 0.00146397],
+                                  [-0.00011346,  0.05951535,  0.00731025],
+                                  [0.00146397,  0.00731025,  0.07483137]])
+        self.mag_b = np.array([-2.50627418, -11.4804655, -29.53963506]).transpose() 
 
     def normalizeQuat(self, q):
         mag = (q[0]**2 + q[1]**2 + q[2]**2 + q[3]**2)**0.5
@@ -196,91 +194,3 @@ class System:
         
         return phi_hat, theta_hat, psi_hat 
         #import pdb; pdb.set_trace()
-
-
-#######################################################################################
-#The following defines the LINEAR KALMAN FILTER CLASS AND ITS METHODS
-#######################################################################################
-
-class LSystem:
-    def __init__(self, inits=None):
-        dt = 0.1
-        self.xHat = np.array([[0], [0], [0], [0], [0], [0]]) #state estimate, cioè Ax
-        if inits is not None:
-            self.xHat[0][0] = inits[0]
-            self.xHat[2][0] = inits[1]
-            self.xHat[4][0] = inits[2]
-        self.P = np.eye(6)  #* 0.01 #mxm con m = dim(xHat)
-        self.Q = np.eye(6)  #* 0.001 #mxm con m = dim(xHat)
-        self.R = np.eye(3) #* 0.1 #nxn con n = dim(yHatBar)
-        self.A = np.array([[1, -dt, 0, 0, 0, 0],
-                        [0, 1, 0, 0, 0, 0],
-                        [0, 0, 1, -dt, 0, 0],
-                        [0, 0, 0, 1, 0, 0],
-                        [0, 0, 0, 0, 1, -dt],
-                        [0, 0, 0, 0, 1, 0]])
-        self.B = np.array([[dt, 0, 0],
-                            [0, 0, 0],
-                            [0, dt, 0],
-                            [0, 0, 0],
-                            [0, 0, dt],
-                            [0, 0, 0]])
-        self.C = np.array([[1, 0, 0, 0, 0, 0],
-                            [0, 0, 1, 0, 0, 0],
-                            [0, 0, 0, 0, 1, 0]])
-        #self.xHatPrev = None
-        #self.PBar = None
-        self.gyro_input = None
-
-    def getAccAng(self, ax, ay, az, mx, my, mz):
-        phi_hat = self.xHat[0][0]
-        theta_hat = self.xHat[2][0]
-
-        phi_acc = np.arctan2(ay, np.sqrt(ax ** 2.0 + az ** 2.0))
-        theta_acc = np.arctan2(-ax, np.sqrt(ay ** 2.0 + az ** 2.0))
-        #psi = np.arctan2(np.sqrt(ax ** 2.0 + ay ** 2.0), az)
-        m_norm = sqrt((mx*mx)+(my*my)+(mz*mz))
-        mx = (mx/m_norm)
-        my = (my/m_norm)
-        mz = (mz/m_norm)
-        psi_acc = np.arctan2((-my*cos(phi_hat) + mz*sin(phi_hat)), (mx*cos(theta_hat) + my*sin(theta_hat)*sin(phi_hat) + mz*sin(theta_hat)*cos(phi_hat)))
-        return [phi_acc, theta_acc, psi_acc]
-
-    def gyroAng(self, p, q, r):
-        phi_hat = self.xHat[0][0]
-        theta_hat = self.xHat[2][0]
-        psi_hat = self.xHat[4][0]
-
-        phi_dot = (p + sin(phi_hat) * tan(theta_hat) * q + cos(phi_hat) * tan(theta_hat) * r)
-        theta_dot = cos(phi_hat) * q - sin(phi_hat) * r
-        psi_dot = (sin(phi_hat) / cos(theta_hat)*q + cos(phi_hat) / cos(theta_hat) * r)
-
-        gyro_input = np.array([[phi_dot], [theta_dot], [psi_dot]])
-        return gyro_input
-
-    ####################### LINEAR KALMAN FILTER LOOP, internally defined ######################
-    
-    def predict(self, w, dt): #dt is a dummy param
-        p, q, r = w
-        self.gyro_input = self.gyroAng(p, q, r)
-        xHat = self.A.dot(self.xHat) + self.B.dot(self.gyro_input) 
-        #self.xHatPrev = self.xHat # prende la PRIMA stima e la rende PREVISIONE PASSATA 
-        self.P = self.A.dot(self.P.dot(np.transpose(self.A))) + self.Q #calcolo di P
-
-
-    def update(self, a, m):
-        ax, ay, az = a
-        mx, my, mz = m        
-        measurement = self.getAccAng( ax, ay, az, mx, my, mz) #ne fa il vettore misura z
-        y_tilde = measurement - self.C.dot(self.xHat)
-        S = self.R + self.C.dot(self.P.dot(np.transpose(self.C)))
-        K = self.P.dot(np.transpose(self.C).dot(np.linalg.inv(S)))
-        self.xHat = self.xHat+ K.dot(y_tilde)
-        self.P = (np.eye(6) - K.dot(self.C)).dot(self.P)
-        phi_hat = self.xHat [0][0]
-        theta_hat = self.xHat [2][0]
-        psi_hat = self.xHat[4][0]
-
-        return psi_hat, theta_hat, phi_hat 
-        #import pdb; pdb.set_trace()
-

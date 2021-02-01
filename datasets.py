@@ -470,10 +470,16 @@ class Dataset_pred_for_GAN(Dataset):
 
 class Dataset_GAN_2(Dataset):
     def __init__(self, path = "./data/Oxio_Dataset/", seq_length=10, angle="theta"):
+        path = path + '/' if path[-1] != '/' else path 
         files = glob.glob(path+"*.pkl")
         shape_0 = []
-        with open(files[0], "rb") as f: 
-            self.dict = pickle.load(f)
+        try:
+            with open(files[0], "rb") as f: 
+                self.dict = pickle.load(f)
+        except:
+            print("No file found. This is the attempted file list:")
+            print(files)
+
         for key in self.dict.keys():
             self.dict[key] = []
         for i in range(len(files)):
@@ -482,7 +488,10 @@ class Dataset_GAN_2(Dataset):
                 self.dict[key].append(f_dict[key].squeeze()) 
         shape_0 = [self.dict["theta_gt"][i].shape[0] for i in range(len(files))] #capturing all the .shape[0] of the matrices of the self.dict["theta_gt"] list
         for key in self.dict.keys():
-            self.dict[key] = np.concatenate(self.dict[key], axis=0)
+            try:
+                self.dict[key] = np.concatenate(self.dict[key], axis=0)
+            except:
+                import pdb; pdb.set_trace()
         self.valid_indexes = []
         acc = 0
         for i in range(len(files)):

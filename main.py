@@ -42,7 +42,7 @@ args = parser.parse_args()
 ############################# Dataset choice ###########################################
 
 if args.dataset == "oxford":
-    args.path = "./data/Oxio_Dataset/slow walking/data1/syn/imu3.csv" if args.path == 'None' else args.path
+    args.path = "./data/Oxio_Dataset/slow walking/data1/syn/imu1.csv" if args.path == 'None' else args.path
     imu = OXFDataset(path=args.path) ##IN THIS CASE args.path IS REQUIRED
 elif args.dataset == "aqua":
     args.path="./data/Aqualoc/imu_sequence_5.csv" if args.path == 'None' else args.path
@@ -112,7 +112,6 @@ args.max_iter = imu.len if args.max_iter == 'None' else int(args.max_iter)
 for i in range(args.max_iter):
     # Get raw measurements
     [p, q, r, ax, ay, az, mx, my, mz] = imu.__getitem__(i)
-
     w = (p, q, r)
     a = (ax, ay, az)
     m = (mx, my, mz)
@@ -120,9 +119,13 @@ for i in range(args.max_iter):
     # filter call
     kf_sys.predict(w, dt)
     psi_hat, theta_hat, phi_hat = kf_sys.update(a, m)
-    phi_hat = -phi_hat ###########DA RISOLVEREEEEEEEEEEEEEEEE
-    theta_hat = -(theta_hat)
-    
+
+    if args.filter == 'ekf':
+        phi_hat = -phi_hat ###########DA RISOLVEREEEEEEEEEEEEEEEE
+        theta_hat = -theta_hat
+
+    elif args.filter == 'lkf':
+        pass
     #Ground truth
     roll, pitch, yaw = imu.get_ang_groundt(i)
 

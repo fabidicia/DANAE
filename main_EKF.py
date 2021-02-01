@@ -25,12 +25,13 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from random import randint
 from sklearn.metrics import mean_squared_error
-from utils import plot_tensorboard
+from utils import plot_tensorboard,quaternion_to_euler
 import warnings
 warnings.filterwarnings('ignore', category=FutureWarning)
 from scipy.ndimage.filters import uniform_filter1d
 from scipy.signal import butter, lfilter
 from scipy.signal import freqs
+
 ############################# Code call definition ######################################
 
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
@@ -84,6 +85,13 @@ phi_gt = []
 theta_gt = []
 psi_gt = []
 
+##intermediate values exclusive to ekf
+phi_interm_Gyro = []
+phi_interm_AccMag = []
+theta_interm_Gyro = []
+theta_interm_AccMag = []
+psi_interm_Gyro = []
+psi_interm_AccMag = []
 
 ############################### INIZIALIZATION of the filter ####################################
 
@@ -116,10 +124,17 @@ for i in range(args.max_iter):
     ekf_sys.predict(w, dt)
     psi_hat, theta_hat, phi_hat = ekf_sys.update(a, m)
 
+    ## io qui posso salvarmi le stime intermedie di phi, theta, roll contenute in ekf_sys.xHatBar e yHatBar.
+    phi_interm, theta_interm, psi_interm = quaternion_to_euler(ekf_sys.xHatBar[0],ekf_sys.xHatBar[1],ekf_sys.xHatBar[2],ekf_sys.xHatBar[3])
+    phi_interm2, theta_interm2, psi_interm2 = quaternion_to_euler(ekf_sys.yHatBar[0],ekf_sys.yHatBar[1],ekf_sys.yHatBar[2],ekf_sys.yHatBar[3])
+
     if args.dataset == "oxford":
         phi_hat = -phi_hat
         theta_hat = -theta_hat
-    
+        phi_interm = -phi_interm
+        phi_interm2 = -phi_interm2
+        theta_interm = -theta_interm
+        theta_interm2 = -theta_interm2    
     #Ground truth
     roll, pitch, yaw = imu.get_ang_groundt(i)
 
@@ -142,7 +157,12 @@ for i in range(args.max_iter):
     my_list.append(my)
     mz_list.append(mz)
 
-
+    phi_interm_Gyro.append(phi_interm)
+    phi_interm_AccMag.append(phi_interm2)
+    theta_interm_Gyro.append(theta_interm)
+    theta_interm_AccMag.append(theta_interm2)
+    psi_interm_Gyro.append(psi_interm)
+    psi_interm_AccMag.append(psi_interm2)
 ################################## ARRAYS CREATION FOR PLOTTING #############################
 
 np_phi_kf = np.asarray(phi_kf)
@@ -213,48 +233,27 @@ print("RMS error psi_fil: %.4f" % sqrt(mean_squared_error(np_psi_gt, psi_kf_fil)
 ########################## Cumulative moving average ##############
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.uniform_filter1d.html
 N = 100000
-phi_kf_cumulative = uniform_filter1d(np_phi_kf, N, mode='nearest')
-theta_kf_cumulative = uniform_filter1d(np_theta_kf, N, mode='nearest')
-psi_kf_cumulative = uniform_filter1d(np_psi_kf, N, mode='nearest')
+phi_kf_uniform = uniform_filter1d(np_phi_kf, N, mode='nearest')
+theta_kf_uniform = uniform_filter1d(np_theta_kf, N, mode='nearest')
+psi_kf_uniform = uniform_filter1d(np_psi_kf, N, mode='nearest')
 
-print("mean deviation phi (gt-kf_cumulative): %.4f" % np.mean(np.abs((np_phi_gt - phi_kf_cumulative))))
-print("mean deviation theta (gt-kf_cumulative): %.4f" % np.mean(np.abs((np_theta_gt - theta_kf_cumulative))))
-print("mean deviation psi (gt-kf_cumulative): %.4f" % np.mean(np.abs((np_psi_gt - psi_kf_cumulative))))
+print("mean deviation phi (gt-kf_uniform): %.4f" % np.mean(np.abs((np_phi_gt - phi_kf_uniform))))
+print("mean deviation theta (gt-kf_uniform): %.4f" % np.mean(np.abs((np_theta_gt - theta_kf_uniform))))
+print("mean deviation psi (gt-kf_uniform): %.4f" % np.mean(np.abs((np_psi_gt - psi_kf_uniform))))
 
-print("max deviation phi (gt-kf_cumulative): %.4f" % np.max(np.abs((np_phi_gt - phi_kf_cumulative))))
-print("max deviation theta (gt-kf_cumulative): %.4f" % np.max(np.abs((np_theta_gt - theta_kf_cumulative))))
-print("max deviation psi (gt-kf_cumulative): %.4f" % np.max(np.abs((np_psi_gt - psi_kf_cumulative))))
+print("max deviation phi (gt-kf_cumulative): %.4f" % np.max(np.abs((np_phi_gt - phi_kf_uniform))))
+print("max deviation theta (gt-kf_cumulative): %.4f" % np.max(np.abs((np_theta_gt - theta_kf_uniform))))
+print("max deviation psi (gt-kf_cumulative): %.4f" % np.max(np.abs((np_psi_gt - psi_kf_uniform))))
 
-print("RMS error phi_fil: %.4f" % sqrt(mean_squared_error(np_phi_gt, phi_kf_cumulative)))
-print("RMS error theta_fil: %.4f" % sqrt(mean_squared_error(np_theta_gt, theta_kf_cumulative)))
-print("RMS error psi_fil: %.4f" % sqrt(mean_squared_error(np_psi_gt, psi_kf_cumulative)))
+print("RMS error phi_fil: %.4f" % sqrt(mean_squared_error(np_phi_gt, phi_kf_uniform)))
+print("RMS error theta_fil: %.4f" % sqrt(mean_squared_error(np_theta_gt, theta_kf_uniform)))
+print("RMS error psi_fil: %.4f" % sqrt(mean_squared_error(np_psi_gt, psi_kf_uniform)))
 
 ####################################### DICTIONARY ########################################
 
-dictionary = {
-    "phi_kf": np.asarray(phi_kf),
-    "phi_gt": np.asarray(phi_gt),
-    "theta_kf": np.asarray(theta_kf),
-    "theta_gt": np.asarray(theta_gt),
-    "psi_kf": np.asarray(psi_kf),
-    "psi_gt": np.asarray(psi_gt),
-    "p": np.asarray(p_list),
-    "q": np.asarray(q_list),
-    "r": np.asarray(r_list),
-    "ax": np.asarray(ax_list),
-    "ay": np.asarray(ay_list),
-    "az": np.asarray(az_list),
-    "mx": np.asarray(mx_list),
-    "my": np.asarray(my_list),
-    "mz": np.asarray(mz_list),
-    "phi_kf_fil": np.asarray(phi_kf_fil),
-    "theta_kf_fil": np.asarray(theta_kf_fil),
-    "psi_kf_fil": np.asarray(psi_kf_fil),
-    "phi_kf_cumulative": np.asarray(phi_kf_cumulative),
-    "theta_kf_cumulative": np.asarray(theta_kf_cumulative),
-    "psi_kf_cumulative": np.asarray(psi_kf_cumulative),
-}
-
+dictionary = {}
+for var in ["phi_kf", "phi_gt", "theta_kf", "theta_gt","psi_kf","psi_gt","p_list","q_list","r_list","ax_list","ay_list","az_list","mx_list","my_list","mz_list","phi_interm_Gyro","phi_interm_AccMag", "theta_interm_Gyro", "theta_interm_AccMag", "psi_interm_Gyro","psi_interm_AccMag","phi_kf_fil","theta_kf_fil","psi_kf_fil","phi_kf_uniform","theta_kf_uniform","psi_kf_uniform"]:
+    dictionary[var] = np.asarray(eval(var))
 Path("./preds/").mkdir(parents=True, exist_ok=True)
 with open("./preds/" + "dict_" + args.path.split("/")[-3]+"_"+ args.path.split("/")[-1][0:4] + ".pkl", 'wb') as f: pickle.dump(dictionary, f)
 

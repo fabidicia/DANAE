@@ -71,18 +71,15 @@ def quaternion_to_euler(x, y, z, v):
 
 class System:
 
-    def __init__(self):
+    def __init__(self,dataset="oxford"):
 
 
         ############################# Code call definition ######################################
 
-        parser = argparse.ArgumentParser("script to show i-value of IMU data")
-        parser.add_argument('--dataset', type=str, required=True)
-        args = parser.parse_args()
-        if args.dataset == "oxford":
+        if dataset == "oxford":
             self.accelReference = np.array([0, 0, -1]).transpose()
 
-        elif args.dataset == "caves":
+        elif dataset == "caves":
             self.accelReference = np.array([0, 0, 1]).transpose()
 
         ############################# Dataset choice ###########################################

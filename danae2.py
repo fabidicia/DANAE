@@ -1,5 +1,10 @@
 import argparse
 import os
+import logging
+logging.disable(logging.WARNING) 
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+import silence_tensorflow.auto
+import tensorflow as tf
 import random
 import torch
 import torch.nn as nn
@@ -23,6 +28,8 @@ from random import randint
 import torch.nn.functional as F
 from networks import Generator, Discriminator, weights_init, GANLoss, update_learning_rate, GeneratorBIG
 
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', default=32, type=int, help='batch_size')
 parser.add_argument('--path', default="./data/preds/slow_walking_train/", help='full path of dataset')
@@ -32,10 +39,24 @@ parser.add_argument('--lr', default=0.0002, type=float, help='lr')
 parser.add_argument('--lamb', default=10.0, type=float, help='lambda')
 parser.add_argument('--length', default=20,type=int, help='signal length')
 parser.add_argument('--epochs', default=1,type=int, help='number of epochs')
-parser.add_argument('--input_type', default="kf", help='type of input.choose between kf, kf_est,est')
+parser.add_argument('--input_type', default="lkf", help='type of input.choose between kf, kf_est,est')
 
-n_inputs = { "kf":1, "est":6, "kf_est": 7}
 args = parser.parse_args()
+
+ang = args.angle.lower()
+input_dict = {}
+input_dict["lkf"] = [args.angle.lower()+"_kf"]
+input_dict["lest"] = ["phi_acc","theta_acc", "psi_acc","phi_dot", "theta_dot", "psi_dot"]
+input_dict["lkf_est"] = [args.angle.lower()+"_kf","phi_acc","theta_acc", "psi_acc","phi_dot", "theta_dot", "psi_dot"]
+
+input_dict["ekf"] = [args.angle.lower()+"_kf"]
+input_dict["eest"] = ["phi_interm_Gyro","phi_interm_AccMag","theta_interm_Gyro","theta_interm_AccMag","psi_interm_Gyro","psi_interm_AccMag"]
+input_dict["ekf_est"] = [args.angle.lower()+"_kf","phi_interm_Gyro","phi_interm_AccMag","theta_interm_Gyro","theta_interm_AccMag","psi_interm_Gyro","psi_interm_AccMag"]
+input_dict["ekf_est_single_angle"] = [ang+"_kf",ang+"_interm_Gyro",ang+"_interm_AccMag"]
+input_dict["ekf_est_complete"] = ["phi_kf","theta_kf","psi_kf","phi_interm_Gyro","phi_interm_AccMag","theta_interm_Gyro","theta_interm_AccMag","psi_interm_Gyro","psi_interm_AccMag"]
+input_dict["ekf_est_complete_single_angle"] = [args.angle.lower()+"_kf","phi_interm_Gyro","phi_interm_AccMag","theta_interm_Gyro","theta_interm_AccMag","psi_interm_Gyro","psi_interm_AccMag"]
+
+n_inputs = { "lkf":1, "lest":6, "lkf_est": 7, "ekf":1, "eest":6, "ekf_est":7,"ekf_est_single_angle":3, "ekf_est_complete":9, "ekf_est_complete_single_angle":7}
 print(args)
 
 seed = randint(0,1000)
@@ -84,20 +105,13 @@ def test(args,dataset_test,writer):
     with torch.no_grad():
         for i in range(0,len(dataset_test),args.length): #QUESTO DA IL PROBLEMA CHE SALTERO' ALCUNI SAMPLES DEL TEST SET, ANDRA' FIXATO
             batch = dataset_test[i]
-            phi_acc = batch["phi_acc"]
-            theta_acc = batch["theta_acc"]
-            psi_acc = batch["psi_acc"]
-            phi_dot = batch["phi_dot"]
-            theta_dot = batch["theta_dot"]
-            psi_dot = batch["psi_dot"]
-            real_a = batch[args.angle.lower()+"_kf"]
-            if args.input_type == 'kf':
-                real_a_stack = torch.cat([real_a,],dim=0)
-            if args.input_type == 'kf_est':
-                real_a_stack = torch.cat([real_a,phi_acc,theta_acc,psi_acc,phi_dot,theta_dot,psi_dot],dim=0)
-            if args.input_type == 'est':
-                real_a_stack = torch.cat([phi_acc,theta_acc,psi_acc,phi_dot,theta_dot,psi_dot],dim=0)
 
+            input = []
+            input_list = input_dict[args.input_type]
+            for elem in input_list:
+                input.append(batch[elem])
+            real_a_stack = torch.cat(input,dim=0) ## because here i'm doing forward on each sample, dim=0, differently to train phase, where dim=1
+            real_a = batch[args.angle.lower()+"_kf"]
             real_b = batch[args.angle.lower()+"_gt"]
 
 
@@ -137,6 +151,13 @@ def test(args,dataset_test,writer):
     plot_tensorboard(writer,[kf_list[2500:5000], gt_list[2500:5000]],['b','r'],Labels=["Kalman filter estimation","Ground Truth"],Name="Image_kf0",ylabel=args.angle+" [rad]")
     plot_tensorboard(writer,[gan_list[2500:5000], gt_list[2500:5000]],['b','r'],Labels=["DANAE estimation","Ground Truth"],Name="Image_DANAE0",ylabel=args.angle+" [rad]")
 
+#    else:
+#        kf_list = kf_list[0:1400]
+#        gt_list = gt_list[0:1400]
+#        gan_list = gan_list[0:1400]
+#        plot_tensorboard(writer,[kf_list[0:1400], gt_list[0:1400]],['b','r'],Labels=["Kalman filter estimation","Ground Truth"],Name="Image_kf0",ylabel=args.angle+" [rad]")
+#        plot_tensorboard(writer,[gan_list[0:1400], gt_list[0:1400]],['b','r'],Labels=["DANAE estimation","Ground Truth"],Name="Image_DANAE0",ylabel=args.angle+" [rad]")
+
     #plot_tensorboard(writer,[gt_list[2500:5000], kf_list[2500:5000]],['r','b'],Labels=["Ground truth","Kalman filter estimation"],Name="Image_kf1",ylabel=args.angle+" [rad]")
     #plot_tensorboard(writer,[gt_list[2500:5000], gan_list[2500:5000]],['r','b'],Labels=["Ground truth","DANAE estimation"],Name="Image_DANAE1",ylabel=args.angle+" [rad]")
 
@@ -155,22 +176,14 @@ for epoch in range(args.epochs):
     netG.eval() #before testing, always put your network in eval mode!
     test(args,dataset_test,writer)
     netG.train() ##before training,always put your network in train mode!
+
     # train
     for i, batch in enumerate(train_dataloader, 1):
-        # forward
-        phi_acc = batch["phi_acc"]
-        theta_acc = batch["theta_acc"]
-        psi_acc = batch["psi_acc"]
-        phi_dot = batch["phi_dot"]
-        theta_dot = batch["theta_dot"]
-        psi_dot = batch["psi_dot"]
-        real_a = batch[args.angle.lower()+"_kf"]
-        if args.input_type == 'kf':
-            real_a_stack = torch.cat([real_a,],dim=1)
-        if args.input_type == 'kf_est':
-            real_a_stack = torch.cat([real_a,phi_acc,theta_acc,psi_acc,phi_dot,theta_dot,psi_dot],dim=1)
-        if args.input_type == 'est':
-            real_a_stack = torch.cat([phi_acc,theta_acc,psi_acc,phi_dot,theta_dot,psi_dot],dim=1)
+        input = []
+        input_list = input_dict[args.input_type]
+        for elem in input_list:
+            input.append(batch[elem])
+        real_a_stack = torch.cat(input,dim=1)
 
 
         real_b = batch[args.angle.lower()+"_gt"]
