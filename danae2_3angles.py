@@ -50,14 +50,15 @@ input_dict["lkf"] = [args.angle.lower()+"_kf"]
 input_dict["lest"] = ["phi_acc","theta_acc", "psi_acc","phi_dot", "theta_dot", "psi_dot"]
 input_dict["lkf_est"] = [args.angle.lower()+"_kf","phi_acc","theta_acc", "psi_acc","phi_dot", "theta_dot", "psi_dot"]
 input_dict["lkf_est_complete"] = ["phi_kf","theta_kf", "psi_kf","phi_acc","theta_acc", "psi_acc","phi_dot", "theta_dot", "psi_dot"]
-
+input_dict["lkf_3input_3output"] = ["phi_kf","theta_kf", "psi_kf"]
+##THE CODE ACTUALLY DOESNOT WORK IF THERE AREN'T THE THREE ANGLES IN INPUT
 input_dict["ekf"] = [args.angle.lower()+"_kf"]
 input_dict["eest"] = ["phi_interm_Gyro","phi_interm_AccMag","theta_interm_Gyro","theta_interm_AccMag","psi_interm_Gyro","psi_interm_AccMag"]
 input_dict["ekf_est"] = [args.angle.lower()+"_kf","phi_interm_Gyro","phi_interm_AccMag","theta_interm_Gyro","theta_interm_AccMag","psi_interm_Gyro","psi_interm_AccMag"]
 input_dict["ekf_est_single_angle"] = [ang+"_kf",ang+"_interm_Gyro",ang+"_interm_AccMag"]
 input_dict["ekf_est_complete"] = ["phi_kf","theta_kf","psi_kf","phi_interm_Gyro","phi_interm_AccMag","theta_interm_Gyro","theta_interm_AccMag","psi_interm_Gyro","psi_interm_AccMag"]
 
-n_inputs = { "lkf":1, "lest":6, "lkf_est": 7, "ekf":1, "eest":6, "ekf_est":7,"ekf_est_single_angle":3, "ekf_est_complete":9, "ekf_est_complete_single_angle":7, "lkf_est_complete":9}
+n_inputs = { "lkf":1, "lkf_3input_3output":3,"lest":6, "lkf_est": 7, "ekf":1, "eest":6, "ekf_est":7,"ekf_est_single_angle":3, "ekf_est_complete":9, "ekf_est_complete_single_angle":7, "lkf_est_complete":9}
 print(args)
 seed = randint(0,1000)
 print("experiment seed: "+str(seed))
@@ -99,7 +100,8 @@ criterionMSE = nn.MSELoss().to(device)
 optimizerD = optim.Adam(netD.parameters(), lr=args.lr, betas=(0.5, 0.999))
 optimizerG = optim.Adam(netG.parameters(), lr=args.lr, betas=(0.5, 0.999))
 
-def test(args,dataset_test,writer):
+def test(args,dataset_test,writer,epoch=0):
+    s_epoch = str(epoch)
     # test
     avg_psnr = 0
     error_list = []
@@ -143,32 +145,27 @@ def test(args,dataset_test,writer):
 #            error_list.append(torch.mean(torch.abs(real_b - real_a)).item())
 #            error_GAN_list.append(torch.mean(torch.abs(real_b - pred)).item())
             gt_list_phi += real_b[0,0,:].tolist()
-            kf_list_phi += real_a_stack[0,0,:].tolist()
+            kf_list_phi += batch["phi_kf"][0,:].tolist()
             gan_list_phi += pred[0,0,:].tolist()
 
             gt_list_theta += real_b[0,1,:].tolist()
-            kf_list_theta += real_a_stack[0,1,:].tolist()
+            kf_list_theta += batch["theta_kf"][0,:].tolist()
             gan_list_theta += pred[0,1,:].tolist()
 
             gt_list_psi += real_b[0,2,:].tolist()
-            kf_list_psi += real_a_stack[0,2,:].tolist()
+            kf_list_psi += batch["psi_kf"][0,:].tolist()
             gan_list_psi += pred[0,2,:].tolist()
 
-            phi_fil = batch["phi_kf_fil"]
-            theta_fil = batch["theta_kf_fil"]
-            psi_fil = batch["psi_kf_fil"]
-            fil = torch.cat([phi_fil,theta_fil,psi_fil],dim=0)
-            fil_list_phi +=fil[0,:].tolist()
-            fil_list_theta +=fil[1,:].tolist()
-            fil_list_psi +=fil[2,:].tolist()
-            phi_uniform = batch["phi_kf_uniform"]
-            theta_uniform = batch["theta_kf_uniform"]
-            psi_uniform = batch["psi_kf_uniform"]
-            uniform = torch.cat([phi_uniform,theta_uniform,psi_uniform],dim=0)
-            uniform_list_phi +=uniform[0,:].tolist()
-            uniform_list_theta +=uniform[1,:].tolist()
-            uniform_list_psi +=uniform[2,:].tolist()
+            try:
+                fil_list_phi +=batch["phi_kf_fil"][0,:].tolist()
+                fil_list_theta += batch["theta_kf_fil"][0,:].tolist()
+                fil_list_psi += batch["psi_kf_fil"][0,:].tolist()
+                uniform_list_phi +=batch["phi_kf_uniform"][0,:].tolist()
+                uniform_list_theta += batch["theta_kf_uniform"][0,:].tolist()
+                uniform_list_psi += batch["psi_kf_uniform"][0,:].tolist()
 
+            except:
+                pass
  #   print("mean error: " + str(mean(error_list)))
  #   print("mean GAN error: " + str(mean(error_GAN_list)))
     print("mean deviation gt-kf_phi: %.4f" % np.mean(np.abs(np.asarray(gt_list_phi) - np.asarray(kf_list_phi) )))
@@ -195,35 +192,35 @@ def test(args,dataset_test,writer):
     print("RMS error gt-GAN_psi: %.4f" % sqrt(mean_squared_error(gt_list_psi, gan_list_psi)) )
     print("===> Avg. PSNR_psi: {:.4f} dB".format(avg_psnr / len(test_dataloader)))
 
+    try:
+        print("mean deviation gt-fil_phi: %.4f" % np.mean(np.abs(np.asarray(gt_list_phi) - np.asarray(fil_list_phi) )))
+        print("max deviation gt-fil_phi: %.4f" % np.max(np.abs(np.asarray(gt_list_phi) - np.asarray(fil_list_phi) )))
+        print("RMS error gt-fil_phi: %.4f" % sqrt(mean_squared_error(gt_list_phi, fil_list_phi)) )
 
-    print("Additional metrics calculated on low pass filters:")
-    print("mean deviation gt-fil_phi: %.4f" % np.mean(np.abs(np.asarray(gt_list_phi) - np.asarray(fil_list_phi) )))
-    print("max deviation gt-fil_phi: %.4f" % np.max(np.abs(np.asarray(gt_list_phi) - np.asarray(fil_list_phi) )))
-    print("RMS error gt-fil_phi: %.4f" % sqrt(mean_squared_error(gt_list_phi, fil_list_phi)) )
+        print("mean deviation gt-fil_theta: %.4f" % np.mean(np.abs(np.asarray(gt_list_theta) - np.asarray(fil_list_theta) )))
+        print("max deviation gt-fil_theta: %.4f" % np.max(np.abs(np.asarray(gt_list_theta) - np.asarray(fil_list_theta) )))
+        print("RMS error gt-fil_theta: %.4f" % sqrt(mean_squared_error(gt_list_theta, fil_list_theta)) )
 
-    print("mean deviation gt-fil_theta: %.4f" % np.mean(np.abs(np.asarray(gt_list_theta) - np.asarray(fil_list_theta) )))
-    print("max deviation gt-fil_theta: %.4f" % np.max(np.abs(np.asarray(gt_list_theta) - np.asarray(fil_list_theta) )))
-    print("RMS error gt-fil_theta: %.4f" % sqrt(mean_squared_error(gt_list_theta, fil_list_theta)) )
+        print("mean deviation gt-fil_psi: %.4f" % np.mean(np.abs(np.asarray(gt_list_psi) - np.asarray(fil_list_psi) )))
+        print("max deviation gt-fil_psi: %.4f" % np.max(np.abs(np.asarray(gt_list_psi) - np.asarray(fil_list_psi) )))
+        print("RMS error gt-fil_psi: %.4f" % sqrt(mean_squared_error(gt_list_psi, fil_list_psi)) )
 
-    print("mean deviation gt-fil_psi: %.4f" % np.mean(np.abs(np.asarray(gt_list_psi) - np.asarray(fil_list_psi) )))
-    print("max deviation gt-fil_psi: %.4f" % np.max(np.abs(np.asarray(gt_list_psi) - np.asarray(fil_list_psi) )))
-    print("RMS error gt-fil_psi: %.4f" % sqrt(mean_squared_error(gt_list_psi, fil_list_psi)) )
+        print("mean deviation gt-uniform_phi: %.4f" % np.mean(np.abs(np.asarray(gt_list_phi) - np.asarray(uniform_list_phi) )))
+        print("max deviation gt-uniform_phi: %.4f" % np.max(np.abs(np.asarray(gt_list_phi) - np.asarray(uniform_list_phi) )))
+        print("RMS error gt-uniform_phi: %.4f" % sqrt(mean_squared_error(gt_list_phi, uniform_list_phi)) )
 
-    print("mean deviation gt-uniform_phi: %.4f" % np.mean(np.abs(np.asarray(gt_list_phi) - np.asarray(uniform_list_phi) )))
-    print("max deviation gt-uniform_phi: %.4f" % np.max(np.abs(np.asarray(gt_list_phi) - np.asarray(uniform_list_phi) )))
-    print("RMS error gt-uniform_phi: %.4f" % sqrt(mean_squared_error(gt_list_phi, uniform_list_phi)) )
+        print("mean deviation gt-uniform_theta: %.4f" % np.mean(np.abs(np.asarray(gt_list_theta) - np.asarray(uniform_list_theta) )))
+        print("max deviation gt-uniform_theta: %.4f" % np.max(np.abs(np.asarray(gt_list_theta) - np.asarray(uniform_list_theta) )))
+        print("RMS error gt-uniform_theta: %.4f" % sqrt(mean_squared_error(gt_list_theta, uniform_list_theta)) )
 
-    print("mean deviation gt-uniform_theta: %.4f" % np.mean(np.abs(np.asarray(gt_list_theta) - np.asarray(uniform_list_theta) )))
-    print("max deviation gt-uniform_theta: %.4f" % np.max(np.abs(np.asarray(gt_list_theta) - np.asarray(uniform_list_theta) )))
-    print("RMS error gt-uniform_theta: %.4f" % sqrt(mean_squared_error(gt_list_theta, uniform_list_theta)) )
-
-    print("mean deviation gt-uniform_psi: %.4f" % np.mean(np.abs(np.asarray(gt_list_psi) - np.asarray(uniform_list_psi) )))
-    print("max deviation gt-uniform_psi: %.4f" % np.max(np.abs(np.asarray(gt_list_psi) - np.asarray(uniform_list_psi) )))
-    print("RMS error gt-uniform_psi: %.4f" % sqrt(mean_squared_error(gt_list_psi, uniform_list_psi)) )
+        print("mean deviation gt-uniform_psi: %.4f" % np.mean(np.abs(np.asarray(gt_list_psi) - np.asarray(uniform_list_psi) )))
+        print("max deviation gt-uniform_psi: %.4f" % np.max(np.abs(np.asarray(gt_list_psi) - np.asarray(uniform_list_psi) )))
+        print("RMS error gt-uniform_psi: %.4f" % sqrt(mean_squared_error(gt_list_psi, uniform_list_psi)) )
+    except:
+        print("Low pass filters not found, skipping their plot")
 
      ###FOR OXIOD
     if args.dataset == "oxford":
- 
         kf_list_theta = kf_list_theta[10000:]
         kf_list_phi = kf_list_phi[10000:]
         kf_list_psi = kf_list_psi[10000:]
@@ -233,27 +230,40 @@ def test(args,dataset_test,writer):
         gan_list_phi = gan_list_phi[10000:]
         gan_list_theta = gan_list_theta[10000:]
         gan_list_psi = gan_list_psi[10000:]
-        plot_tensorboard(writer,[kf_list_phi[2500:5000], gt_list_phi[2500:5000]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="kf_phi",ylabel="phi [rad]",ylim=[-0.6,-0.1])
-        plot_tensorboard(writer,[kf_list_theta[2500:5000], gt_list_theta[2500:5000]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="kf_theta",ylabel="theta [rad]",ylim=[-0.1,0.3])
-        plot_tensorboard(writer,[kf_list_psi[2500:5000], gt_list_psi[2500:5000]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="kf_psi",ylabel="psi [rad]")
+        plot_tensorboard(writer,[kf_list_phi[2500:5000], gt_list_phi[2500:5000]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="kf_phi_"+s_epoch,ylabel="phi [rad]",ylim=[-0.6,-0.1])
+        writer.flush()
+        plot_tensorboard(writer,[kf_list_theta[2500:5000], gt_list_theta[2500:5000]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="kf_theta_"+s_epoch,ylabel="theta [rad]",ylim=[-0.1,0.3])
+        writer.flush()
+        plot_tensorboard(writer,[kf_list_psi[2500:5000], gt_list_psi[2500:5000]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="kf_psi_"+s_epoch,ylabel="psi [rad]")
+        writer.flush()
+        plot_tensorboard(writer,[gan_list_phi[2500:5000], gt_list_phi[2500:5000]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="DANAE++_phi_"+s_epoch,ylabel="phi [rad]",ylim=[-0.6,-0.1])
+        writer.flush()
+        plot_tensorboard(writer,[gan_list_theta[2500:5000], gt_list_theta[2500:5000]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="DANAE++_theta_"+s_epoch,ylabel="theta [rad]",ylim=[-0.1,0.3])
+        writer.flush()
+        plot_tensorboard(writer,[gan_list_psi[2500:5000], gt_list_psi[2500:5000]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="DANAE++_psi_"+s_epoch,ylabel="psi [rad]")
+        writer.flush()
 
-        plot_tensorboard(writer,[gan_list_phi[2500:5000], gt_list_phi[2500:5000]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="DANAE++_phi",ylabel="phi [rad]",ylim=[-0.6,-0.1])
-        plot_tensorboard(writer,[gan_list_theta[2500:5000], gt_list_theta[2500:5000]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="DANAE++_theta",ylabel="theta [rad]",ylim=[-0.1,0.3])
-        plot_tensorboard(writer,[gan_list_psi[2500:5000], gt_list_psi[2500:5000]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="DANAE++_psi",ylabel="psi [rad]")
-
-        fil_list_theta = fil_list_theta[10000:]
-        fil_list_phi = fil_list_phi[10000:]
-        fil_list_psi = fil_list_psi[10000:]
-        uniform_list_phi = uniform_list_phi[10000:]
-        uniform_list_theta = uniform_list_theta[10000:]
-        uniform_list_psi = uniform_list_psi[10000:]
-        plot_tensorboard(writer,[gan_list_phi[2500:5000], gt_list_phi[2500:5000],fil_list_phi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Butter Low-pass Filter estimation"],Name="fil_phi",ylabel="phi [rad]",ylim=[-0.6,-0.1])
-        plot_tensorboard(writer,[gan_list_theta[2500:5000], gt_list_theta[2500:5000],fil_list_theta[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Butter Low-pass Filter estimation"],Name="fil_theta",ylabel="theta [rad]",ylim=[-0.1,0.3])
-        plot_tensorboard(writer,[gan_list_psi[2500:5000], gt_list_psi[2500:5000],fil_list_psi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Butter Low-pass Filter estimation"],Name="fil_psi",ylabel="psi [rad]")
-        plot_tensorboard(writer,[gan_list_phi[2500:5000], gt_list_phi[2500:5000],uniform_list_phi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Uniform Filter estimation"],Name="uniform_phi",ylabel="phi [rad]",ylim=[-0.6,-0.1])
-        plot_tensorboard(writer,[gan_list_theta[2500:5000], gt_list_theta[2500:5000],uniform_list_theta[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Uniform Filter estimation"],Name="uniform_theta",ylabel="theta [rad]",ylim=[-0.1,0.3])
-        plot_tensorboard(writer,[gan_list_psi[2500:5000], gt_list_psi[2500:5000],uniform_list_psi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth", "Uniform Filter Estimation"],Name="uniform_psi",ylabel="psi [rad]")
-        
+        try:
+            fil_list_theta = fil_list_theta[10000:]
+            fil_list_phi = fil_list_phi[10000:]
+            fil_list_psi = fil_list_psi[10000:]
+            uniform_list_phi = uniform_list_phi[10000:]
+            uniform_list_theta = uniform_list_theta[10000:]
+            uniform_list_psi = uniform_list_psi[10000:]
+            plot_tensorboard(writer,[gan_list_phi[2500:5000], gt_list_phi[2500:5000],fil_list_phi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Butter Low-pass Filter estimation"],Name="fil_phi_"+s_epoch,ylabel="phi [rad]",ylim=[-0.6,-0.1])
+            writer.flush()
+            plot_tensorboard(writer,[gan_list_theta[2500:5000], gt_list_theta[2500:5000],fil_list_theta[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Butter Low-pass Filter estimation"],Name="fil_theta_"+s_epoch,ylabel="theta [rad]",ylim=[-0.1,0.3])
+            writer.flush()
+            plot_tensorboard(writer,[gan_list_psi[2500:5000], gt_list_psi[2500:5000],fil_list_psi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Butter Low-pass Filter estimation"],Name="fil_psi_"+s_epoch,ylabel="psi [rad]")
+            writer.flush()
+            plot_tensorboard(writer,[gan_list_phi[2500:5000], gt_list_phi[2500:5000],uniform_list_phi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Uniform Filter estimation"],Name="uniform_phi_"+s_epoch,ylabel="phi [rad]",ylim=[-0.6,-0.1])
+            writer.flush()
+            plot_tensorboard(writer,[gan_list_theta[2500:5000], gt_list_theta[2500:5000],uniform_list_theta[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Uniform Filter estimation"],Name="uniform_theta_"+s_epoch,ylabel="theta [rad]",ylim=[-0.1,0.3])
+            writer.flush()
+            plot_tensorboard(writer,[gan_list_psi[2500:5000], gt_list_psi[2500:5000],uniform_list_psi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth", "Uniform Filter Estimation"],Name="uniform_psi_"+s_epoch,ylabel="psi [rad]")
+            writer.flush()
+        except:
+            pass
     else:
     ### FOR UCS
 #    kf_list = kf_list[0:1400]
@@ -270,19 +280,17 @@ def test(args,dataset_test,writer):
         gan_list_phi = gan_list_phi[0:1400]
         gan_list_theta = gan_list_theta[0:1400]
         gan_list_psi = gan_list_psi[0:1400]
-        plot_tensorboard(writer,[kf_list_phi[0:1400], gt_list_phi[0:1400]],['#a87813','#490101'],Labels=["Kalman Filter estimation", "Ground Truth"],Name="Image_kf_phi",ylabel="phi [rad]")
-        plot_tensorboard(writer,[kf_list_theta[0:1400], gt_list_theta[0:1400]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="Image_kf_theta",ylabel="theta [rad]")
-        plot_tensorboard(writer,[kf_list_psi[0:1400], gt_list_psi[0:1400]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="Image_kf_psi",ylabel="psi [rad]")
+        plot_tensorboard(writer,[kf_list_phi[0:1400], gt_list_phi[0:1400]],['#a87813','#490101'],Labels=["Kalman Filter estimation", "Ground Truth"],Name="Image_kf_phi_"+s_epoch,ylabel="phi [rad]")
+        plot_tensorboard(writer,[kf_list_theta[0:1400], gt_list_theta[0:1400]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="Image_kf_theta_"+s_epoch,ylabel="theta [rad]")
+        plot_tensorboard(writer,[kf_list_psi[0:1400], gt_list_psi[0:1400]],['#a87813','#490101'],Labels=["Kalman Filter estimation","Ground Truth"],Name="Image_kf_psi_"+s_epoch,ylabel="psi [rad]")
 
-        plot_tensorboard(writer,[gan_list_phi[0:1400], gt_list_phi[0:1400]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="Image_DANAE2_phi",ylabel="phi [rad]")
-        plot_tensorboard(writer,[gan_list_theta[0:1400], gt_list_theta[0:1400]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="Image_DANAE2_theta",ylabel="theta [rad]")
-        plot_tensorboard(writer,[gan_list_psi[0:1400], gt_list_psi[0:1400]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="Image_DANAE2_psi",ylabel="psi [rad]")
+        plot_tensorboard(writer,[gan_list_phi[0:1400], gt_list_phi[0:1400]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="Image_DANAE2_phi_"+s_epoch,ylabel="phi [rad]")
+        plot_tensorboard(writer,[gan_list_theta[0:1400], gt_list_theta[0:1400]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="Image_DANAE2_theta_"+s_epoch,ylabel="theta [rad]")
+        plot_tensorboard(writer,[gan_list_psi[0:1400], gt_list_psi[0:1400]],['#43a5ff','#490101'],Labels=["DANAE++ estimation","Ground Truth"],Name="Image_DANAE2_psi_"+s_epoch,ylabel="psi [rad]")
 
 
 
 for epoch in range(args.epochs):
-    netG.eval() #before testing, always put your network in eval mode!
-    test(args,dataset_test,writer)
     netG.train() ##before training,always put your network in train mode!
 
     # train
@@ -333,10 +341,10 @@ for epoch in range(args.epochs):
 #        loss_g_gan = criterionGAN(pred_fake, True)
 
         # Second, G(A) = B
-        loss_g_l1 = criterionL1(fake_b, real_b) * args.lamb # se uso lr=0.001 e args.lamb 10 è la stessa cosa che 0.01 e args.lamb 1. Quindi args.lamb è un paarmetro ridondante!!
-        
+        loss_g_l1 = criterionL1(fake_b, real_b) * args.lamb
+
         loss_g = loss_g_l1 #+ loss_g_gan
-        
+
         loss_g.backward() # calcolo dei gradienti
 
         optimizerG.step() # ottimizzazione rispetto al gradiente
@@ -348,6 +356,8 @@ for epoch in range(args.epochs):
 #    update_learning_rate(netD_scheduler, optimizerD)
 
 
+    netG.eval() #before testing, always put your network in eval mode!
+    test(args,dataset_test,writer,epoch)
 
     #checkpoint
     if epoch % 50 == 0:
@@ -360,5 +370,3 @@ for epoch in range(args.epochs):
         torch.save(netG, netG_model_out_path)
         torch.save(netD, netD_model_out_path)
         print("Checkpoint saved to {}".format("checkpoint" + args.dataset))
-netG.eval()
-test(args,dataset_test,writer)
