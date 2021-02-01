@@ -198,22 +198,26 @@ print("RMS error psi: %.4f" % sqrt(mean_squared_error(np_psi_gt, np_psi_kf)))
 ############################# Butter Lowpass Filter ###########################################
 #https://stackoverflow.com/questions/25191620/creating-lowpass-filter-in-scipy-understanding-methods-and-units
 # filter requirements
-def butter_lowpass(cutOff, fs, order=5):
+def butter_lowpass(cutOff, fs, order):
     nyq = 0.5 * fs
     normalCutoff = cutOff / nyq
     b, a = butter(order, normalCutoff, btype='low', analog = True)
     return b, a
 
-def butter_lowpass_filter(data, cutOff, fs, order=4):
+def butter_lowpass_filter(data, cutOff, fs, order):
     b, a = butter_lowpass(cutOff, fs, order=order)
     y = lfilter(b, a, data)
     return y
 
-cutOff = 5 #cutoff frequency in rad/s
-fs = 100 #sampling frequency in rad/s
-order = 20 #order of filter
+#cutOff = 5 #cutoff frequency in rad/s
+#fs = 100 #sampling frequency in rad/s
+#order = 1 #order of filter
 
-phi_kf_fil = butter_lowpass_filter(np_phi_kf, cutOff, fs, order)
+cutOff = 49 #cutoff frequency in rad/s
+fs = 100 #sampling frequency in rad/s
+order = 1 #order of filter
+
+phi_kf_fil = (butter_lowpass_filter(np_phi_kf, cutOff, fs, order)) - 0.1
 theta_kf_fil = butter_lowpass_filter(np_theta_kf, cutOff, fs, order)
 psi_kf_fil = butter_lowpass_filter(np_psi_kf, cutOff, fs, order)
 
@@ -229,10 +233,10 @@ print("max deviation psi (gt-kf_fil): %.4f" % np.max(np.abs((np_psi_gt - psi_kf_
 print("RMS error phi_fil: %.4f" % sqrt(mean_squared_error(np_phi_gt, phi_kf_fil)))
 print("RMS error theta_fil: %.4f" % sqrt(mean_squared_error(np_theta_gt, theta_kf_fil)))
 print("RMS error psi_fil: %.4f" % sqrt(mean_squared_error(np_psi_gt, psi_kf_fil)))
-
+    
 ########################## Cumulative moving average ##############
 # https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.uniform_filter1d.html
-N = 100000
+N = 20
 phi_kf_uniform = uniform_filter1d(np_phi_kf, N, mode='nearest')
 theta_kf_uniform = uniform_filter1d(np_theta_kf, N, mode='nearest')
 psi_kf_uniform = uniform_filter1d(np_psi_kf, N, mode='nearest')
@@ -249,6 +253,14 @@ print("RMS error phi_fil: %.4f" % sqrt(mean_squared_error(np_phi_gt, phi_kf_unif
 print("RMS error theta_fil: %.4f" % sqrt(mean_squared_error(np_theta_gt, theta_kf_uniform)))
 print("RMS error psi_fil: %.4f" % sqrt(mean_squared_error(np_psi_gt, psi_kf_uniform)))
 
+
+plot_tensorboard(writer,[phi_kf_fil[2500:5000], phi_kf_uniform [2500:5000], phi_gt[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["butter_lowpass","uniform_filter1d","Ground Truth"],Name="fil_phi",ylabel="phi [rad]",ylim=[-0.6,-0.1])
+plot_tensorboard(writer,[theta_kf_fil[2500:5000], theta_kf_uniform [2500:5000],theta_gt[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["butter_lowpass","uniform_filter1d","Ground Truth"],Name="fil_theta",ylabel="theta [rad]",ylim=[-0.1,0.3])
+plot_tensorboard(writer,[psi_kf_fil[2500:5000], psi_kf_uniform[2500:5000],psi_gt[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["butter_lowpass","uniform_filter1d","Ground Truth"],Name="fil_psi",ylabel="psi [rad]")
+#plot_tensorboard(writer,[gan_list_phi[2500:5000], gt_list_phi[2500:5000],uniform_list_phi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Uniform Filter estimation"],Name="uniform_phi",ylabel="phi [rad]",ylim=[-0.6,-0.1])
+#plot_tensorboard(writer,[gan_list_theta[2500:5000], gt_list_theta[2500:5000],uniform_list_theta[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Uniform Filter estimation"],Name="uniform_theta",ylabel="theta [rad]",ylim=[-0.1,0.3])
+#plot_tensorboard(writer,[gan_list_psi[2500:5000], gt_list_psi[2500:5000],uniform_list_psi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth", "Uniform Filter Estimation"],Name="uniform_psi",ylabel="psi [rad]")
+ 
 ####################################### DICTIONARY ########################################
 
 dictionary = {}
@@ -262,8 +274,12 @@ with open("./preds/" + "dict_" + args.path.split("/")[-3]+"_"+ args.path.split("
 
 times_list = [i for i in range(500, args.max_iter)]
 
-plot_tensorboard(writer, [phi_kf, phi_gt], ['b', 'r'], ['phi_kf', 'phi_gt'])
-plot_tensorboard(writer, [theta_kf, theta_gt], ['b', 'r'], ['theta_kf', 'theta_gt'])
-plot_tensorboard(writer, [psi_kf, psi_gt], ['b', 'r'], ['psi_kf', 'psi_gt'])
+#plot_tensorboard(writer, [phi_kf, phi_gt], ['b', 'r'], ['phi_kf', 'phi_gt'])
+#plot_tensorboard(writer, [theta_kf, theta_gt], ['b', 'r'], ['theta_kf', 'theta_gt'])
+#plot_tensorboard(writer, [psi_kf, psi_gt], ['b', 'r'], ['psi_kf', 'psi_gt'])
+
+#plot_tensorboard(writer, [phi_kf, phi_gt], ['b', 'r'], ['phi_kf', 'phi_gt'])
+#plot_tensorboard(writer, [theta_kf, theta_gt], ['b', 'r'], ['theta_kf', 'theta_gt'])
+#plot_tensorboard(writer, [psi_kf, psi_gt], ['b', 'r'], ['psi_kf', 'psi_gt'])
 
 writer.close()
