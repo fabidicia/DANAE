@@ -4,3 +4,6 @@ CUDA_VISIBLE_DEVICES=0 python danae_ms.py --batch_size 16 --path ./data/preds/sl
 ##to launch danae++ with 3 angles estimation:
 CUDA_VISIBLE_DEVICES=3 python danae2_3angles.py --input_type ekf_est_complete 
 --path ./data/preds/slow_walking_ekf_train
+
+#another example
+CUDA_VISIBLE_DEVICES=3 python danae2_3angles.py --input_type ekf_est_complete --path ./data/preds/1_7_slow_walking_ekf_train/ --epochs 20
