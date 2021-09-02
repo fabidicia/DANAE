@@ -9,7 +9,7 @@ DANAE is a deep Denoising AutoeNcoder for Attitude Estimation which works on Kal
 ![plot](./Results_Figure/oxford_danae1_phi.jpg)
 
 ### DANAE Pitch estimation - UCS Dataset
-![plot](./Results_Figure/ucs_lkf_theta.jpg =24x48)
+![plot](./Results_Figure/ucs_lkf_theta.jpg){:height="24px" width="48px"}
 ![plot](./Results_Figure/ucs_danae1_theta.jpg)
 
 DANAE++ is the enhanced version of the first architecture: it is able to denoise IMU/AHRS data obtained through both the Linear (LKF) and Extended (EKF) Kalman filter-derived values. Better results are achieved by DANAE++ also when compared to common low-pass filters (in our study, the [Butter LP filter](https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.butter.html
