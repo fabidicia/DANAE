@@ -1,8 +1,8 @@
 # DANAE - A Deep Learning based approach to denoise attitude estimations using an autoencoder
 
 All the instructions to install and correctly run DANAE and DANAE++ can be found in the [instruction.md](./instruction.md) file.
-Please remember that the results presented in the paper can be replicated using the datasets chosen by the authors. In fact, our autoencoder learnt the characteristics of the sensors systems used to acquire the proposed dataset, so perfectly fits our necessities.
-If you wish to try DANAE and DANAE++ on your datasets, keep in mind that probably a basic finetuning of the autoencoder weights will be necessary to obtain good results! For this reason, we suggest to make a first training on the proposed datasets (also to further verify if it correctly runs) *having prior modified the script to save the weights*. At this point, you can proceed with their tuning. 
+Please remember that the results presented in the paper can be replicated using the datasets chosen by the authors. In fact, the autoencoder captures the characteristics of the sensors used to build the dataset.
+If you wish to try DANAE and DANAE++ on a custom dataset, keep in mind that probably a basic finetuning (or even a full train from scratch) of the autoencoder weights will be necessary to obtain good results! For this reason, we suggest to make a first training on the proposed datasets (also to further verify if it correctly runs) *having prior modified the script to save and load the weights*. At this point, you can proceed with their tuning. 
 
 If you liked our work and you wish to consider (or use) it in your research, please consider to cite us!
 
