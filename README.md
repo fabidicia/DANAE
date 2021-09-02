@@ -6,8 +6,7 @@ DANAE is a deep Denoising AutoeNcoder for Attitude Estimation which works on Kal
 
 ### DANAE Roll estimation - OXIO Dataset
 
-![plot](./Results_Figure/oxford_LKF_phi.jpg)
-![plot](./Results_Figure/oxford_danae1_phi.jpg)
+![plot](./Results_Figure/oxford_LKF_phi.jpg) | ![plot](./Results_Figure/oxford_danae1_phi.jpg)
 
 ### DANAE Pitch estimation - UCS Dataset
 ![plot](./Results_Figure/ucs_lkf_theta.jpg)
