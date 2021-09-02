@@ -1,11 +1,11 @@
-# DANAE - Running procedures
+# DANAE - Running procedures for the datasets of the paper
 As a first step, you need to install some python packages required to correctly run all the code. They are listed in the requirements.txt file and can be easily installed as follows:
 
 ```Python
 pip3 install requirements.txt
 ```
 
-## Dataset acquisition
+# Dataset acquisition
 To download the Oxford Inertial Odometry Dataset (OxIOD) you need to send a request through the following [link](https://forms.gle/wjE7u5AonoyyrgXJ7). They will provide you with a folder (which we renamed as Oxio_Dataset) containing a ReadMe.txt file with the data list order, and a set of subfolders (e.g. handheld, pocket, slow walking, etc). Each of them contains instructions on which set of IMU measures has been used as train or test sets among the data**n** folders, where **n** stands for the number of acquisition. We used those contained in the "./data/Oxio_Dataset/slow walking/data1/syn/" folder (i.e. imu1.csv, imu2.csv, imu3.csv and so on).
 
 The Underwater Caves Sonar Dataset (UCSD) can be easily downloaded from the following [site](https://cirs.udg.edu/caves-dataset/). We used the "full_dataset.zip" containing the main bag file in order to directly access the data without using ROS: we stored them in a directory named "caves". However, they report precise instructions to explore the ROS bags too.
@@ -23,7 +23,7 @@ Having correctly stored the data, you can now use the Kalman Filtering algorithm
 ## Filtering algorithms
 You can test both the Linear and the Extended Kalman Filters by running the "main_LKF.py" or "the main_EKF.py" files respectively. You will need to specify the chosen dataset ("oxford" for OxIOD and "caves" for UCSD) and the related csv data file. 
 
-### OxIO Dataset
+#### OxIO Dataset
 As previously said, we used the slow_walking set of OxIO Dataset and used the data1/syn subfolder, from which we set the "imu1.csv" as test file and from "imu2.csv" to "imu7.csv" as training set. The resulting call to the LKF algorithm is:
 
 ```Python
@@ -47,7 +47,7 @@ mv preds/dict_data1_imu3.pkl ./preds/slow_walking_ekf_train/
 ..
 mv preds/dict_data1_imu8.pkl ./preds/slow_walking_train/
 ```
-### UCS Dataset
+#### UCS Dataset
 The KF filters can be run on the UCSD as you made for the OxIOD. However, the resulting .pkl files will be stored in the "preds" folder in both cases with the following name: "dict_caves_imu_.pkl". For this reason **you need to immediately move the first one in the train folder before running the LKF or EKF on the test set**. You will run:
 
 ```Python
@@ -72,7 +72,7 @@ mv preds/dict_caves_imu_.pkl ./preds/caves_ekf_test/
 # for the EKF
 ```
 
-## Training and testing phase
+# Training and testing phase
 
 Having set all the elements, we can now train and then test DANAE++ specifying the previous used LKF or EKF with "input_type", and the corresponding path we created. In the first case, we will run:
 
