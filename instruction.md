@@ -1,7 +1,7 @@
 # DANAE - Launching procedures
 
 ## Dataset acquisition
-To download the Oxford Inertial Odometry Dataset (OxIOD) you will need to send a request through the following [link](https://forms.gle/wjE7u5AonoyyrgXJ7). They will provide you with a folder (which we renamed as Oxio_Dataset) containing a ReadMe.txt file with the data list order, and a set of subfolders (e.g. handheld, pocket, slow walking, etc). Each of them contains instructions on which set of IMU measures has been used as train or test sets among the data*n* folders, where *n* stands for the number of acquisition; we used the acquisitions contained in the "./data/Oxio_Dataset/slow walking/data1/syn/" folder (i.e. imu1.csv, imu2.csv, imu3.csv and so on).
+To download the Oxford Inertial Odometry Dataset (OxIOD) you will need to send a request through the following [link](https://forms.gle/wjE7u5AonoyyrgXJ7). They will provide you with a folder (which we renamed as Oxio_Dataset) containing a ReadMe.txt file with the data list order, and a set of subfolders (e.g. handheld, pocket, slow walking, etc). Each of them contains instructions on which set of IMU measures has been used as train or test sets among the data*n* folders, where *n* stands for the number of acquisition. We used those contained in the "./data/Oxio_Dataset/slow walking/data1/syn/" folder (i.e. imu1.csv, imu2.csv, imu3.csv and so on).
 
 The Underwater Caves Sonar Dataset (UCSD) can be easily downloaded from the following [site](https://cirs.udg.edu/caves-dataset/). We used the *full_dataset.zip* containing the main bag file, in order to directly obtain the data without using ROS: we downloaded them in a directory named "caves". However, they report precise instructions to explore the ROS bags too.
 Data are given in a single file for both the standard low-cost Xsens MTi AHRS and the Analog Devices ADIS16480 used during the acquisition. We then decided to split the data and use the first 80% to train DANAE++ and the remaining 20% to test the performances. The path to our file is for instance "./data/caves/full_dataset/imu_adis.txt".
@@ -11,7 +11,7 @@ Once set the data, you will need to combine them for obtaining the filtered data
 ## Filtering algorithms
 You can test both the Linear and the Extended Kalman Filters by running the main_LKF.py or the main_EKF.py files respectively. You will need to specify the chosen dataset and the related csv data file. For example, as previously said, we used the slow_walking set of Oxio Dataset, and inside the data1/syn subfolder we set the imu1.csv as test file and imu2.csv from imu7.csv as training. The resulting call to the algorithm is:
 
-'''
+'''python
 python main_LKF.py --dataset oxford --path ./data/Oxio_Dataset/slow_walking/data1/syn/imu1.csv
 '''
 
