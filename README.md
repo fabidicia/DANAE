@@ -1,7 +1,25 @@
 # DANAE - A Deep Learning based approach to denoise attitude estimations using an autoencoder
 
 All the instructions to install and correctly run DANAE and DANAE++ can be found in the [instruction.md](./instruction.md) file.
+Please remember that the results presented in the paper can be replicated using the datasets chosen by the authors. In fact, our autoencoder learnt the characteristics of the sensors systems used to acquire the proposed dataset, so perfectly fits our necessities.
+If you wish to try DANAE and DANAE++ on your datasets, keep in mind that probably a basic finetuning of the autoencoder weights will be necessary to obtain good results! For this reason, we suggest to make a first training on the proposed datasets (also to further verify if it correctly runs) *having prior modified the script to save the weights*. At this point, you can proceed with their tuning. 
 
+If you liked our work and you wish to consider (or use) it in your research, please consider to cite us!
+
+> Russo, P., Di Ciaccio, F., & Troisi, S. (2021). DANAE++: A Smart Approach for Denoising Underwater Attitude Estimation. Sensors, 21(4), 1526.
+
+> @article{russo2021danae++,
+  title={DANAE++: A Smart Approach for Denoising Underwater Attitude Estimation},
+  author={Russo, Paolo and Di Ciaccio, Fabiana and Troisi, Salvatore},
+  journal={Sensors},
+  volume={21},
+  number={4},
+  pages={1526},
+  year={2021},
+  publisher={Multidisciplinary Digital Publishing Institute}
+}
+
+# DANAE - Overview
 DANAE is a deep Denoising AutoeNcoder for Attitude Estimation which works on Kalman Filter IMU/AHRS data integration with the aim of reducing any kind of noise, independently of its nature. In the first implementation, the Linear KF has been implemented on two set of data: the [Oxford Inertial Odometry Dataset](http://deepio.cs.ox.ac.uk/) (OxIOD) and the [Underwater Cave Sonar Dataset](https://cirs.udg.edu/caves-dataset/) (UCSD). The following images show the results of both the LKF and DANAE applied on the roll (phi) and the pitch angles estimation for the OXIOD and the UCSD respectively.
 
 ### DANAE Roll estimation - OXIO Dataset
