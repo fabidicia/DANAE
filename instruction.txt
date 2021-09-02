@@ -1,5 +1,13 @@
-# First of all, you will need the filtered orientation data obtained through the Linear or the Extended Kalman Filter. You will need to run:
->> python main_LKF.py 
+First of all, you need to get the data packed into Oxio Dataset or Caves format. Here are the links to OxioD and Caves dataset:
+
+
+# In the next step you need the filtered orientation data obtained through the Linear or the Extended Kalman Filter. Run the main_LKF.py or the main_EKF.py setting the appropriate dataset type and the csv data file. For example, in the paper we used the slow_walking set of Oxio Dataset, data1/syn subfolder, using imu1.csv as test and imu2-7 as training, eg:
+>> python main_LKF.py --dataset oxford --path ./data/Oxio_Dataset/slow_walking/data1/syn/imu1.csv
+#This produce a corresponding output in preds folder: dict_data1_imu1.pkl.
+#For the DANAE training/testing phase, you need to run main_LKF/EKF for all the imu files of the folder, collecting the produced pkl files, and splitting them in two folders: foldername_train and foldername_test. For example, move dict_data1_imu1.pkl in a newly created slow_walking_train and slow_walking_test folders:
+mv preds/dict_data1_imu1.pkl ./preds/slow_walking_test/
+mv preds/dict_data1_imu1.pkl ./preds/slow_walking_test/
+mv preds/dict_data1_imu1.pkl ./preds/slow_walking_test/
 
 ##to launch danae++ with 3 angles estimation:
 >> CUDA_VISIBLE_DEVICES=3 python main_DANAE.py --input_type ekf_est_complete --path ./data/preds/slow_walking_ekf_train
