@@ -1,7 +1,6 @@
 ##########################################################################################
 
-# This version is the original LKF used to implement DANAE in which the upgrade to an EKF
-# using QUATERNIONS is implemented (or, better, I AM TRYING TO) inspired to:
+# using QUATERNIONS is inspired to:
 # https://www.thepoorengineer.com/en/ekf-impl/#EKFimpl
 
 ##########################################################################################
@@ -18,7 +17,6 @@ import numpy as np
 import pickle
 import io
 import argparse
-import pandas as pd
 from math import sin, cos, tan, pi, atan2, sqrt 
 from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
@@ -37,8 +35,7 @@ from scipy.signal import freqs
 parser = argparse.ArgumentParser("script to show i-value of IMU data")
 parser.add_argument('--dataset', type=str, required=True)
 parser.add_argument('--path', type=str, default="None")
-parser.add_argument('--max_iter', type=str, default="None")
-parser.add_argument('--gtpath', type=str)# solo per Aqua dataset
+parser.add_argument('--max_iter', type=str, default="None") #just for plotting
 
 ############################# Dataset choice ###########################################
 
@@ -47,9 +44,6 @@ if args.dataset == "oxford":
     #faccio una modifica
     args.path = "./data/Oxio_Dataset/slow walking/data1/syn/imu3.csv" if args.path == 'None' else args.path
     imu = OXFDataset(path=args.path) ##IN THIS CASE args.path IS REQUIRED
-elif args.dataset == "aqua":
-    args.path="./data/Aqualoc/imu_sequence_5.csv" if args.path == 'None' else args.path
-    imu = Aqua(args.path)
 elif args.dataset == "caves":
     args.path="./data/caves/full_dataset/imu_adis.txt" if args.path == 'None' else args.path
     imu = caves(args.path,noise=True)
@@ -103,9 +97,6 @@ psi_interm_AccMag = []
 ekf_sys = ekf.System()
 dt = 0.1
 
-#phi_hat, theta_hat, psi_hat = imu.get_ang_groundt(0) ## INITIALIZE TO TRUE GT VALUES!
-
-
 ################################# FILTER LOOP #########################################
 
 print("Running...")
@@ -124,7 +115,7 @@ for i in range(args.max_iter):
     ekf_sys.predict(w, dt)
     psi_hat, theta_hat, phi_hat = ekf_sys.update(a, m)
 
-    ## io qui posso salvarmi le stime intermedie di phi, theta, roll contenute in ekf_sys.xHatBar e yHatBar.
+    ## intermediate estimations of phi, theta, roll which are contained into ekf_sys.xHatBar and yHatBar.
     phi_interm, theta_interm, psi_interm = quaternion_to_euler(ekf_sys.xHatBar[0],ekf_sys.xHatBar[1],ekf_sys.xHatBar[2],ekf_sys.xHatBar[3])
     phi_interm2, theta_interm2, psi_interm2 = quaternion_to_euler(ekf_sys.yHatBar[0],ekf_sys.yHatBar[1],ekf_sys.yHatBar[2],ekf_sys.yHatBar[3])
 
@@ -135,7 +126,8 @@ for i in range(args.max_iter):
         phi_interm2 = -phi_interm2
         theta_interm = -theta_interm
         theta_interm2 = -theta_interm2    
-    #Ground truth
+
+    #Ground truth starting value
     roll, pitch, yaw = imu.get_ang_groundt(i)
 
     ############################ LIST CREATION ########################################
@@ -209,10 +201,6 @@ def butter_lowpass_filter(data, cutOff, fs, order):
     y = lfilter(b, a, data)
     return y
 
-#cutOff = 5 #cutoff frequency in rad/s
-#fs = 100 #sampling frequency in rad/s
-#order = 1 #order of filter
-
 cutOff = 49 #cutoff frequency in rad/s
 fs = 100 #sampling frequency in rad/s
 order = 1 #order of filter
@@ -257,10 +245,6 @@ print("RMS error psi_fil: %.4f" % sqrt(mean_squared_error(np_psi_gt, psi_kf_unif
 plot_tensorboard(writer,[phi_kf_fil[2500:5000], phi_kf_uniform [2500:5000], phi_gt[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["butter_lowpass","uniform_filter1d","Ground Truth"],Name="fil_phi",ylabel="phi [rad]",ylim=[-0.6,-0.1])
 plot_tensorboard(writer,[theta_kf_fil[2500:5000], theta_kf_uniform [2500:5000],theta_gt[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["butter_lowpass","uniform_filter1d","Ground Truth"],Name="fil_theta",ylabel="theta [rad]",ylim=[-0.1,0.3])
 plot_tensorboard(writer,[psi_kf_fil[2500:5000], psi_kf_uniform[2500:5000],psi_gt[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["butter_lowpass","uniform_filter1d","Ground Truth"],Name="fil_psi",ylabel="psi [rad]")
-#plot_tensorboard(writer,[gan_list_phi[2500:5000], gt_list_phi[2500:5000],uniform_list_phi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Uniform Filter estimation"],Name="uniform_phi",ylabel="phi [rad]",ylim=[-0.6,-0.1])
-#plot_tensorboard(writer,[gan_list_theta[2500:5000], gt_list_theta[2500:5000],uniform_list_theta[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth","Uniform Filter estimation"],Name="uniform_theta",ylabel="theta [rad]",ylim=[-0.1,0.3])
-#plot_tensorboard(writer,[gan_list_psi[2500:5000], gt_list_psi[2500:5000],uniform_list_psi[2500:5000]],['#43a5ff','#490101','#a87813'],Labels=["DANAE++ estimation","Ground Truth", "Uniform Filter Estimation"],Name="uniform_psi",ylabel="psi [rad]")
- 
 ####################################### DICTIONARY ########################################
 
 dictionary = {}

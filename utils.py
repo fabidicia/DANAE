@@ -180,8 +180,8 @@ from random import randint
 
 def plot_tensorboard(writer,Datas, Lines, Labels,Name="Image",ylabel=None,ylim=None):
     rnd = randint(0,10000)
-    with open(Name+".pkl", "wb") as open_file:
-        pickle.dump(Datas, open_file)
+    #with open(Name+".pkl", "wb") as open_file:
+    #    pickle.dump(Datas, open_file)
 
     if Name == "Image":
         Name = Name + str(rnd)
