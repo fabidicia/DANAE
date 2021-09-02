@@ -2,7 +2,7 @@
 
 DANAE is a deep Denoising AutoeNcoder for Attitude Estimation which works on Kalman filter IMU/AHRS data integration with the aim of reducing any kind of noise, independently of its nature.
 
-You can find all the instructions to install and correctly run the algorithms in the instruction.md file. [Guidlines @](./instruction.md)]
+You can find all the instructions to install and correctly run the algorithms in the [instruction.txt](./instruction.txt) file.
 
 ![plot](./Results_Figure/oxford_LKF_phi.jpg)
 ![plot](./Results_Figure/oxford_danae1_phi.jpg)
