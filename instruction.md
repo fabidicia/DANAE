@@ -1,15 +1,15 @@
 # DANAE - Running procedures
+As a first step, you need to install some python packages required to correctly run all the code. They are listed in the requirements.txt file and can be easily installed as follows:
+
+```Python
+pip3 install requirements.txt
+```
 
 ## Dataset acquisition
 To download the Oxford Inertial Odometry Dataset (OxIOD) you will need to send a request through the following [link](https://forms.gle/wjE7u5AonoyyrgXJ7). They will provide you with a folder (which we renamed as Oxio_Dataset) containing a ReadMe.txt file with the data list order, and a set of subfolders (e.g. handheld, pocket, slow walking, etc). Each of them contains instructions on which set of IMU measures has been used as train or test sets among the data**n** folders, where **n** stands for the number of acquisition. We used those contained in the "./data/Oxio_Dataset/slow walking/data1/syn/" folder (i.e. imu1.csv, imu2.csv, imu3.csv and so on).
 
 The Underwater Caves Sonar Dataset (UCSD) can be easily downloaded from the following [site](https://cirs.udg.edu/caves-dataset/). We used the "full_dataset.zip" containing the main bag file in order to directly access the data without using ROS: we stored them in a directory named "caves". However, they report precise instructions to explore the ROS bags too.
-Data are given in a single file for both the standard low-cost Xsens MTi AHRS and the Analog Devices ADIS16480 used during the acquisition. We then decided to split the data to use the first 80% to train DANAE++ and the remaining 20% to test the performances. To do this, you will need to install the required python packages listed in the requirements.txt file as follows:
-
-```Python
-pip3 install requirements.txt
-```
-At this point you can subdivide the dataset:
+Data are given in a single file for both the standard low-cost Xsens MTi AHRS and the Analog Devices ADIS16480 used during the acquisition. We then decided to split the data to use the first 80% to train DANAE++ and the remaining 20% to test the performances. To subdivide the dataset:
 
 ```Python
 export FILE_NAME=imu_adis.txt
