@@ -11,7 +11,7 @@ Once set the data, you will need to combine them for obtaining the filtered data
 ## Filtering algorithms
 You can test both the Linear and the Extended Kalman Filters by running the main_LKF.py or the main_EKF.py files respectively. You will need to specify the chosen dataset and the related csv data file. For example, as previously said, we used the slow_walking set of Oxio Dataset, and inside the data1/syn subfolder we set the imu1.csv as test file and imu2.csv from imu7.csv as training. The resulting call to the algorithm is:
 
-'''
+'''Python
 python main_LKF.py --dataset oxford --path ./data/Oxio_Dataset/slow_walking/data1/syn/imu1.csv
 '''
 
@@ -22,23 +22,23 @@ At the end of each run, you we suggesto to move the obtained predicted data (i.e
 ## Training and testing phase
 The .pkl files obtained through the KF algorithms will be moved in two separate folders: foldername_train and foldername_test. We suggest to use the same folder name of the origin data. For example, dict_data1_imu1.pkl will be stored in two newly created slow_walking_ekf_train and slow_walking_ekf_test folders as follows:
 
-'''
->> mv preds/dict_data1_imu1.pkl ./preds/slow_walking_ekf_test/
->> mv preds/dict_data1_imu2.pkl ./preds/slow_walking_ekf_train/
->> mv preds/dict_data1_imu3.pkl ./preds/slow_walking_ekf_train/
+'''Python
+mv preds/dict_data1_imu1.pkl ./preds/slow_walking_ekf_test/
+mv preds/dict_data1_imu2.pkl ./preds/slow_walking_ekf_train/
+mv preds/dict_data1_imu3.pkl ./preds/slow_walking_ekf_train/
 ..
->> mv preds/dict_data1_imu8.pkl ./preds/slow_walking_train/
+mv preds/dict_data1_imu8.pkl ./preds/slow_walking_train/
 '''
 
 Having set all the elements, we can now train and then test DANAE++ specifying the previous used LKF or EKF with *input_type*, and the corresponding path we created. In the first case, we will run:
 
-'''
+'''Python
 >> python main_DANAE.py --input_type lkf_est_complete --path ./preds/slow_walking_lkf_train
 '''
 
 while in the latter:
 
-'''
+'''Python
 >> python main_DANAE.py --input_type ekf_est_complete --path ./preds/slow_walking_ekf_train
 '''
 
