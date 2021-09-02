@@ -5,8 +5,8 @@ All the instructions to install and correctly run DANAE and DANAE++ can be found
 DANAE is a deep Denoising AutoeNcoder for Attitude Estimation which works on Kalman Filter IMU/AHRS data integration with the aim of reducing any kind of noise, independently of its nature. In the first implementation, the Linear KF has been implemented on two set of data: the [Oxford Inertial Odometry Dataset](http://deepio.cs.ox.ac.uk/) (OxIOD) and the [Underwater Cave Sonar Dataset](https://cirs.udg.edu/caves-dataset/) (UCSD). The following images show the results of both the LKF and DANAE applied on the roll (phi) and the pitch angles estimation for the OXIOD and the UCSD respectively.
 
 ### DANAE Roll estimation - OXIO Dataset
-![alt text](https://github.com/fabidicia/DANAE/blob/master/Results_Figure/oxford_LKF_phi.jpg=250x250)
-![plot](./Results_Figure/oxford_LKF_phi.jpg)
+
+![plot](./Results_Figure/oxford_LKF_phi.jpg=250x250)
 ![plot](./Results_Figure/oxford_danae1_phi.jpg)
 
 ### DANAE Pitch estimation - UCS Dataset
