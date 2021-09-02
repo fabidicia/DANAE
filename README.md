@@ -1,8 +1,8 @@
-# DANAE - A Deep Learning based approach to denoise attitude estimations using an autoencoder
+# DANAE++ - A Deep Learning based approach to denoise attitude estimations using an autoencoder
 
-All the instructions to install and correctly run DANAE and DANAE++ can be found in the [instruction.md](./instruction.md) file.
+All the instructions to install and correctly run DANAE++ can be found in the [instruction.md](./instruction.md) file.
 Please remember that the results presented in the paper can be replicated using the datasets chosen by the authors. In fact, the autoencoder captures the characteristics of the sensors used to build the dataset.
-If you wish to try DANAE and DANAE++ on a custom dataset, keep in mind that probably a basic finetuning (or even a full train from scratch) of the autoencoder weights will be necessary to obtain good results! For this reason, we suggest to make a first training on the proposed datasets (also to further verify if it correctly runs) *having prior modified the script to save and load the weights*. At this point, you can proceed with their tuning. 
+If you wish to try DANAE++ on a custom dataset, keep in mind that probably a basic finetuning (or even a full train from scratch) of the autoencoder weights will be necessary to obtain good results! For this reason, we suggest to make a first training on the proposed datasets (also to further verify if it correctly runs) *having prior modified the script to save and load the weights*. At this point, you can proceed with their tuning. 
 
 If you liked our work and you wish to consider (or use) it in your research, please consider to cite us!
 
@@ -19,7 +19,7 @@ If you liked our work and you wish to consider (or use) it in your research, ple
   publisher={Multidisciplinary Digital Publishing Institute}
 }
 
-# DANAE - Overview
+# DANAE++ - Overview
 DANAE is a deep Denoising AutoeNcoder for Attitude Estimation which works on Kalman Filter IMU/AHRS data integration with the aim of reducing any kind of noise, independently of its nature. In the first implementation, the Linear KF has been implemented on two set of data: the [Oxford Inertial Odometry Dataset](http://deepio.cs.ox.ac.uk/) (OxIOD) and the [Underwater Cave Sonar Dataset](https://cirs.udg.edu/caves-dataset/) (UCSD). The following images show the results of both the LKF and DANAE applied on the roll (phi) and the pitch angles estimation for the OXIOD and the UCSD respectively.
 
 ### DANAE Roll estimation - OXIO Dataset
