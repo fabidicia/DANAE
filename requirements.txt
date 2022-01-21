@@ -5,6 +5,6 @@ torch==1.7.1+cu110
 scipy==1.6.2
 torchvision==0.8.2+cu110
 pandas==1.1.5
-Pillow==8.3.1
+Pillow>=9.0.0
 scikit_learn==0.24.2
 squaternion==0.3.2
