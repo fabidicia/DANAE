@@ -47,7 +47,7 @@ The following images shows the results obtained by DANAE++ w.r.t. the roll angle
 ![plot](./Results_Figure/ucs_danae++_theta.jpg)
 
 # References
-[Conference Paper]: https://arxiv.org/abs/2011.06853 presented @Metrology for the Sea 2020
+[Conference Paper]: https://www.scopus.com/record/display.uri?eid=2-s2.0-85123283881&origin=resultslist published by IMEKO-International Measurement Federation Secretariat, MetroSea 2020 - TC19 International Workshop on Metrology for the Sea
 
 [Extended Article]: https://www.mdpi.com/1424-8220/21/4/1526 published by Sensors, MDPI - 2021
 
